@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CVT Việt Nam – Snack khoai môn nhập khẩu</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Be Vietnam Pro"', 'sans-serif'],
+          },
+          colors: {
+            green: {
+              DEFAULT: '#00a862',
+              dark: '#007a3b',
+              light: '#00c16a',
+              superlight: '#e6f7ef',
+            },
+            bg: {
+              main: '#f8fafc',
+              card: '#ffffff',
+            },
+            text: {
+              main: '#0f172a',
+              muted: '#64748b',
+            },
+            accent: '#0ea5e9',
+            danger: '#ef4444',
+            purple: {
+                light: '#d8b4fe',
+                DEFAULT: '#a855f7',
+                dark: '#7e22ce',
+            },
+            orange: {
+                light: '#fdba74',
+                DEFAULT: '#f97316',
+                dark: '#c2410c',
+            }
+          },
+          boxShadow: {
+            soft: '0 20px 40px -10px rgba(15, 23, 42, 0.08)',
+            card: '0 4px 20px -2px rgba(15, 23, 42, 0.06)',
+            glow: '0 0 20px rgba(0, 168, 98, 0.4)',
+            'glow-orange': '0 0 20px rgba(249, 115, 22, 0.4)',
+            'glow-purple': '0 0 20px rgba(168, 85, 247, 0.4)',
+          },
+          animation: {
+            'float': 'float 6s ease-in-out infinite',
+            'float-delayed': 'float 6s ease-in-out 3s infinite',
+            'pulse-glow': 'pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'shimmer': 'shimmer 2.5s linear infinite',
+            'shake': 'shake 3s cubic-bezier(.36,.07,.19,.97) infinite',
+          },
+          keyframes: {
+            float: {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%': { transform: 'translateY(-10px)' },
+            },
+            'pulse-glow': {
+              '0%, 100%': { opacity: 1, boxShadow: '0 0 20px rgba(0, 168, 98, 0.4)' },
+              '50%': { opacity: .9, boxShadow: '0 0 30px rgba(0, 168, 98, 0.6)' },
+            },
+            shimmer: {
+                '0%': { backgroundPosition: '200% 0' },
+                '100%': { backgroundPosition: '-200% 0' }
+            },
+            shake: {
+              '0%, 100%': { transform: 'translate3d(0, 0, 0)' },
+              '10%, 90%': { transform: 'translate3d(-1px, 0, 0)' },
+              '20%, 80%': { transform: 'translate3d(2px, 0, 0)' },
+              '30%, 50%, 70%': { transform: 'translate3d(-2px, 0, 0)' },
+              '40%, 60%': { transform: 'translate3d(2px, 0, 0)' }
+            }
+          },
+          backgroundImage: {
+            'hero-card': 'linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%)',
+            'gradient-primary': 'linear-gradient(135deg, #00a862 0%, #00c16a 100%)',
+            'gradient-purple': 'linear-gradient(135deg, #a855f7 0%, #d8b4fe 100%)',
+            'gradient-orange': 'linear-gradient(135deg, #f97316 0%, #fdba74 100%)',
+            'shimmer-gradient': 'linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%)',
+            'gradient-alert': 'linear-gradient(90deg, #991b1b 0%, #dc2626 50%, #991b1b 100%)',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #f8fafc;
+    }
+    html {
+      scroll-behavior: smooth;
+    }
+    .safe-area-pb {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+  </style>
+<script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.554.0",
+    "recharts": "https://aistudiocdn.com/recharts@^3.4.1",
+    "vite": "https://aistudiocdn.com/vite@^7.2.4",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0"
+  }
+}
+</script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
