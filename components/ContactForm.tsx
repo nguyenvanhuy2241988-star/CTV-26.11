@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Button from './ui/Button';
 import { Send, CheckCircle2, FileText, Download, AlertCircle, Users, Zap } from 'lucide-react';
@@ -28,21 +27,23 @@ const ContactForm: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      // Sử dụng FormData thay vì JSON để đảm bảo tính ổn định cao nhất
+      // Sử dụng FormData để đảm bảo tính ổn định cao nhất
       const formPayload = new FormData();
-      formPayload.append("_captcha", "false");
-      formPayload.append("_template", "table");
-      formPayload.append("_subject", "🚀 KHÁCH TẢI BÁO GIÁ GẤP - CVT");
+      // Cấu hình FormSubmit
+      formPayload.append("_captcha", "false"); // Tắt captcha
+      formPayload.append("_template", "table"); // Định dạng email bảng
+      formPayload.append("_subject", "🔥 KHÁCH MỚI ĐĂNG KÝ BÁO GIÁ - CVT");
+      
+      // Dữ liệu người dùng
       formPayload.append("Họ tên", formData.fullName);
       formPayload.append("SĐT", formData.phone);
       formPayload.append("Khu vực", formData.province || "Chưa nhập");
       formPayload.append("Loại hình", formData.type || "Chưa nhập");
 
-      // Gửi qua FormSubmit AJAX endpoint
+      // Gửi qua FormSubmit AJAX endpoint - Email: nguyenvanhuy2241988@gmail.com
       const response = await fetch("https://formsubmit.co/ajax/nguyenvanhuy2241988@gmail.com", {
         method: "POST",
         headers: { 
-            // Không set Content-Type để browser tự động set multipart/form-data
             'Accept': 'application/json' 
         },
         body: formPayload
@@ -54,14 +55,11 @@ const ContactForm: React.FC = () => {
         // Reset success message after 10 seconds
         setTimeout(() => setIsSuccess(false), 10000);
       } else {
-        // Nếu lỗi server, thử gửi lại bằng cách điều hướng (Fallback)
         throw new Error("Server error");
       }
     } catch (error) {
       console.error("Submission error:", error);
-      // Hiển thị thông báo lỗi thân thiện và hướng dẫn khách hàng
       alert("Kết nối bị gián đoạn. Anh/chị vui lòng kết bạn Zalo 0969.069.798 để nhận báo giá ngay lập tức nhé! Xin lỗi vì sự bất tiện này.");
-      // Mở Zalo luôn cho khách nếu lỗi
       window.open(`https://zalo.me/0969069798`, '_blank');
     } finally {
       setIsSubmitting(false);
@@ -101,7 +99,7 @@ const ContactForm: React.FC = () => {
         </div>
       </div>
 
-      {/* Right Form - SIMPLIFIED & OPTIMIZED */}
+      {/* Right Form */}
       <div className="bg-white rounded-3xl p-5 md:p-8 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] border border-gray-100 relative">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#FF6600] text-white text-[10px] md:text-xs font-bold px-4 py-1.5 rounded-full shadow-lg border-2 border-white whitespace-nowrap z-20">
             Chỉ mất 30 giây để điền
@@ -121,7 +119,7 @@ const ContactForm: React.FC = () => {
         ) : (
             <form onSubmit={handleSubmit} className="space-y-4 pt-3">
             
-            {/* Name & Phone - The most important fields */}
+            {/* Name & Phone */}
             <div className="space-y-4">
                 <div>
                     <input 
@@ -149,7 +147,7 @@ const ContactForm: React.FC = () => {
                 </div>
             </div>
             
-            {/* Optional Fields - Smaller/Less prominent */}
+            {/* Optional Fields */}
             <div className="grid grid-cols-2 gap-3">
                 <div>
                     <input 
