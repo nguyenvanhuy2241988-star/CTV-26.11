@@ -7,7 +7,7 @@ const MobileStickyBtn: React.FC = () => {
     document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const HOTLINE = "0969.15.30.15";
+  const HOTLINE = "0969.069.798";
 
   return (
     <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 shadow-[0_-4px_20px_rgba(0,0,0,0.1)] z-[40] md:hidden flex flex-col safe-area-pb">

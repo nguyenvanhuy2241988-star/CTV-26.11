@@ -36,7 +36,7 @@ const Navbar: React.FC = () => {
           {/* Hidden on very small screens to save space, visible on mobile+ */}
           <div className="hidden sm:block text-right mr-2">
              <div className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Hotline hỗ trợ</div>
-             <div className="text-sm font-bold text-red-600">0969.15.30.15</div>
+             <div className="text-sm font-bold text-red-600">0969.069.798</div>
           </div>
           <Button onClick={() => scrollToSection('contact')} className="shadow-lg shadow-green-600/20">
             Tải Báo Giá Sỉ

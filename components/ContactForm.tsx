@@ -73,12 +73,12 @@ const ContactForm: React.FC = () => {
                 <FileText size={18} /> Bạn sẽ nhận được:
              </h4>
              <ul className="space-y-2 text-sm text-gray-700 mb-4">
-                 <li className="flex items-center gap-2"><CheckCircle2 size={16} className="text-green-600 shrink-0"/> Bảng giá sỉ 5 mốc số lượng</li>
-                 <li className="flex items-center gap-2"><CheckCircle2 size={16} className="text-green-600 shrink-0"/> Catalog hình ảnh sản phẩm HD</li>
-                 <li className="flex items-center gap-2"><CheckCircle2 size={16} className="text-green-600 shrink-0"/> Tư vấn 1:1 từ chuyên gia</li>
+                 <li className="flex items-start gap-2"><CheckCircle2 size={16} className="text-green-600 shrink-0 mt-0.5"/> <span>Bảng giá sỉ theo từng mức số lượng</span></li>
+                 <li className="flex items-start gap-2"><CheckCircle2 size={16} className="text-green-600 shrink-0 mt-0.5"/> <span>Catalog hình ảnh & thông số sản phẩm</span></li>
+                 <li className="flex items-start gap-2"><CheckCircle2 size={16} className="text-green-600 shrink-0 mt-0.5"/> <span>Tư vấn nhập hàng 1:1 theo khu vực và nhu cầu của bạn.</span></li>
              </ul>
              <div className="text-sm font-bold text-red-600 pt-3 border-t border-orange-200">
-                Hotline Ưu Tiên: 0969.15.30.15
+                Hotline Ưu Tiên: 0969.069.798
              </div>
         </div>
       </div>

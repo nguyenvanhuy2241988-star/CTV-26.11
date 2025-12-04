@@ -10,7 +10,7 @@ interface Message {
   text: string;
 }
 
-const HOTLINE = "0969.15.30.15";
+const HOTLINE = "0969.069.798";
 
 // SYSTEM INSTRUCTION: Cấu hình nhân cách - Nhân viên CSKH thật
 const SYSTEM_INSTRUCTION = `
@@ -139,7 +139,7 @@ const ChatBot: React.FC = () => {
             if (phoneRegex.test(userText)) {
                 reply = "Dạ em đã nhận được số điện thoại. Em đã chuyển thông tin cho bộ phận kinh doanh, các bạn sẽ liên hệ anh/chị trong ít phút nữa ạ! Em cảm ơn anh/chị đã quan tâm CVT ạ! ❤️";
             } else if (isAskingPrice) {
-                reply = "Dạ để nhận bảng giá sỉ tốt nhất và chính sách Mua 10 Tặng 1, anh/chị giúp em để lại SĐT hoặc kết bạn Zalo 0969.15.30.15 nhé ạ! Em gửi bảng giá qua đó cho tiện mình tham khảo ạ.";
+                reply = "Dạ để nhận bảng giá sỉ tốt nhất và chính sách Mua 10 Tặng 1, anh/chị giúp em để lại SĐT hoặc kết bạn Zalo 0969.069.798 nhé ạ! Em gửi bảng giá qua đó cho tiện mình tham khảo ạ.";
             }
 
             const botMessage: Message = {
