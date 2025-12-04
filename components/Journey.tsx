@@ -94,7 +94,7 @@ const Journey: React.FC = () => {
                     <Factory size={18} />
                 </div>
                 <div className="pt-1">
-                    <div className="text-base font-bold text-gray-900 uppercase tracking-tight">Bước 1 — Sản xuất & đóng gói (TQ)</div>
+                    <div className="text-base font-bold text-gray-900 uppercase tracking-tight">Sản xuất & đóng gói (TQ)</div>
                     <ul className="text-sm text-gray-600 mt-2 space-y-1 list-disc pl-4 marker:text-gray-300">
                         <li>Công nghệ <strong>VF chiên chân không</strong> nhiệt độ thấp.</li>
                         <li>Đóng gói hoàn thiện tại nhà máy, bảo quản nhiệt độ thường.</li>
@@ -109,7 +109,7 @@ const Journey: React.FC = () => {
                     <ShieldCheck size={18} />
                 </div>
                 <div className="pt-1">
-                    <div className="text-base font-bold text-gray-900 uppercase tracking-tight">Bước 2 — Nhập khẩu & Kiểm định (VN)</div>
+                    <div className="text-base font-bold text-gray-900 uppercase tracking-tight">Nhập khẩu & Kiểm định (VN)</div>
                     <ul className="text-sm text-gray-600 mt-2 space-y-1 list-disc pl-4 marker:text-gray-300">
                         <li>CVT nhập khẩu <strong>chính ngạch</strong>, đầy đủ thủ tục hải quan.</li>
                         <li>Kiểm định chất lượng, công bố & dán tem phụ đúng quy định.</li>
@@ -124,7 +124,7 @@ const Journey: React.FC = () => {
                     <Truck size={18} />
                 </div>
                 <div className="pt-1">
-                    <div className="text-base font-bold text-gray-900 uppercase tracking-tight">Bước 3 — Phân phối nhanh (1–4 ngày)</div>
+                    <div className="text-base font-bold text-gray-900 uppercase tracking-tight">Phân phối nhanh (1–4 ngày)</div>
                     <ul className="text-sm text-gray-600 mt-2 space-y-1 list-disc pl-4 marker:text-gray-300">
                         <li>Xuất hàng từ kho VN đến đại lý trong <strong>1–4 ngày</strong>.</li>
                         <li>Cung cấp đủ: Hóa đơn VAT, hồ sơ pháp lý, hình ảnh.</li>
