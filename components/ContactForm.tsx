@@ -27,47 +27,42 @@ const ContactForm: React.FC = () => {
     
     setIsSubmitting(true);
 
-    // Timeout safety: Force stop if request takes too long (10s)
-    const timeoutId = setTimeout(() => {
-        if (isSubmitting) {
-            setIsSubmitting(false);
-            alert("Hệ thống đang bận. Anh/chị vui lòng nhấn nút Gọi Ngay hoặc chat Zalo 0969.069.798 để được hỗ trợ nhanh nhất nhé! Xin lỗi vì sự bất tiện này.");
-        }
-    }, 10000);
-
     try {
+      // Sử dụng FormData thay vì JSON để đảm bảo tính ổn định cao nhất
+      const formPayload = new FormData();
+      formPayload.append("_captcha", "false");
+      formPayload.append("_template", "table");
+      formPayload.append("_subject", "🚀 KHÁCH TẢI BÁO GIÁ GẤP - CVT");
+      formPayload.append("Họ tên", formData.fullName);
+      formPayload.append("SĐT", formData.phone);
+      formPayload.append("Khu vực", formData.province || "Chưa nhập");
+      formPayload.append("Loại hình", formData.type || "Chưa nhập");
+
+      // Gửi qua FormSubmit AJAX endpoint
       const response = await fetch("https://formsubmit.co/ajax/nguyenvanhuy2241988@gmail.com", {
         method: "POST",
         headers: { 
-            'Content-Type': 'application/json', 
+            // Không set Content-Type để browser tự động set multipart/form-data
             'Accept': 'application/json' 
         },
-        body: JSON.stringify({
-            _subject: "🚀 KHÁCH TẢI BÁO GIÁ GẤP - CVT",
-            _captcha: "false", // Tắt captcha để tránh bị treo
-            _template: "table",
-            "Họ tên": formData.fullName,
-            "SĐT": formData.phone,
-            "Khu vực": formData.province || "Không nhập",
-            "Loại hình": formData.type || "Không nhập",
-        })
+        body: formPayload
       });
-
-      // Clear timeout if response received
-      clearTimeout(timeoutId);
 
       if (response.ok) {
         setIsSuccess(true);
         setFormData({ fullName: '', phone: '', province: '', type: '' });
-        setTimeout(() => setIsSuccess(false), 8000);
+        // Reset success message after 10 seconds
+        setTimeout(() => setIsSuccess(false), 10000);
       } else {
-        console.error("Form error:", await response.json());
-        alert("Có lỗi kết nối. Vui lòng kiểm tra lại mạng hoặc liên hệ Zalo 0969.069.798.");
+        // Nếu lỗi server, thử gửi lại bằng cách điều hướng (Fallback)
+        throw new Error("Server error");
       }
     } catch (error) {
-      clearTimeout(timeoutId);
-      console.error("Network error:", error);
-      alert("Lỗi đường truyền. Vui lòng kiểm tra kết nối mạng.");
+      console.error("Submission error:", error);
+      // Hiển thị thông báo lỗi thân thiện và hướng dẫn khách hàng
+      alert("Kết nối bị gián đoạn. Anh/chị vui lòng kết bạn Zalo 0969.069.798 để nhận báo giá ngay lập tức nhé! Xin lỗi vì sự bất tiện này.");
+      // Mở Zalo luôn cho khách nếu lỗi
+      window.open(`https://zalo.me/0969069798`, '_blank');
     } finally {
       setIsSubmitting(false);
     }
@@ -117,6 +112,11 @@ const ContactForm: React.FC = () => {
                 <CheckCircle2 size={48} className="text-green-600 mb-4" />
                 <h4 className="text-xl font-bold text-green-800 mb-2">Đăng ký thành công!</h4>
                 <p className="text-gray-600 text-sm">Bộ phận kinh doanh sẽ gửi báo giá qua Zalo SĐT bạn vừa nhập trong 5 phút nữa.</p>
+                <div className="mt-6">
+                    <Button variant="outline" onClick={() => setIsSuccess(false)} size="sm">
+                        Đăng ký thêm
+                    </Button>
+                </div>
             </div>
         ) : (
             <form onSubmit={handleSubmit} className="space-y-4 pt-3">
