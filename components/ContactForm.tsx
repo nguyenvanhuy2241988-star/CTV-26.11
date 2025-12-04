@@ -21,14 +21,31 @@ const ContactForm: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Prevent double submission
+    if (isSubmitting) return;
+    
     setIsSubmitting(true);
+
+    // Timeout safety: Force stop if request takes too long (10s)
+    const timeoutId = setTimeout(() => {
+        if (isSubmitting) {
+            setIsSubmitting(false);
+            alert("Hệ thống đang bận. Anh/chị vui lòng nhấn nút Gọi Ngay hoặc chat Zalo 0969.069.798 để được hỗ trợ nhanh nhất nhé! Xin lỗi vì sự bất tiện này.");
+        }
+    }, 10000);
 
     try {
       const response = await fetch("https://formsubmit.co/ajax/nguyenvanhuy2241988@gmail.com", {
         method: "POST",
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        headers: { 
+            'Content-Type': 'application/json', 
+            'Accept': 'application/json' 
+        },
         body: JSON.stringify({
             _subject: "🚀 KHÁCH TẢI BÁO GIÁ GẤP - CVT",
+            _captcha: "false", // Tắt captcha để tránh bị treo
+            _template: "table",
             "Họ tên": formData.fullName,
             "SĐT": formData.phone,
             "Khu vực": formData.province || "Không nhập",
@@ -36,15 +53,21 @@ const ContactForm: React.FC = () => {
         })
       });
 
+      // Clear timeout if response received
+      clearTimeout(timeoutId);
+
       if (response.ok) {
         setIsSuccess(true);
         setFormData({ fullName: '', phone: '', province: '', type: '' });
         setTimeout(() => setIsSuccess(false), 8000);
       } else {
-        alert("Có lỗi kết nối, vui lòng thử lại.");
+        console.error("Form error:", await response.json());
+        alert("Có lỗi kết nối. Vui lòng kiểm tra lại mạng hoặc liên hệ Zalo 0969.069.798.");
       }
     } catch (error) {
-      alert("Lỗi mạng. Vui lòng kiểm tra lại đường truyền.");
+      clearTimeout(timeoutId);
+      console.error("Network error:", error);
+      alert("Lỗi đường truyền. Vui lòng kiểm tra kết nối mạng.");
     } finally {
       setIsSubmitting(false);
     }
@@ -154,7 +177,7 @@ const ContactForm: React.FC = () => {
             </div>
 
             <Button type="submit" variant="super-cta" disabled={isSubmitting} className="w-full justify-center py-4 text-base uppercase font-extrabold tracking-wide mt-2">
-                {isSubmitting ? 'Đang xử lý...' : <><Download size={20} /> TẢI BÁO GIÁ NGAY</>}
+                {isSubmitting ? 'ĐANG XỬ LÝ...' : <><Download size={20} /> TẢI BÁO GIÁ NGAY</>}
             </Button>
             
             {/* Trust Note */}
