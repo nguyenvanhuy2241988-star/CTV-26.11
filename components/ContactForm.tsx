@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Button from './ui/Button';
 import { CheckCircle2, FileText, Download, AlertCircle, Zap } from 'lucide-react';
@@ -111,7 +110,7 @@ const ContactForm: React.FC = () => {
                     <div>
                         <input 
                             type="text" 
-                            name="Họ tên" // Use Vietnamese keys for email readability
+                            name="fullName" // Matches state property
                             value={formData.fullName} 
                             onChange={handleChange} 
                             required 
@@ -119,12 +118,11 @@ const ContactForm: React.FC = () => {
                             className="w-full rounded-lg border border-gray-300 px-4 py-3.5 text-base focus:border-[#FF6600] focus:ring-2 focus:ring-orange-100 outline-none transition-all bg-gray-50 focus:bg-white placeholder:text-gray-400" 
                             style={{ fontSize: '16px' }}
                         />
-                        {/* Hidden input to sync state to form submission if needed, but name attr handles it */}
                     </div>
                     <div>
                         <input 
                             type="tel" 
-                            name="SĐT" 
+                            name="phone" // Matches state property
                             value={formData.phone} 
                             onChange={handleChange} 
                             required 
@@ -140,7 +138,7 @@ const ContactForm: React.FC = () => {
                     <div>
                         <input 
                             type="text" 
-                            name="Khu vực" 
+                            name="province" // Matches state property
                             value={formData.province} 
                             onChange={handleChange} 
                             placeholder="Khu vực (Tùy chọn)" 
@@ -149,7 +147,7 @@ const ContactForm: React.FC = () => {
                     </div>
                     <div>
                         <select 
-                            name="Loại hình" 
+                            name="type" // Matches state property
                             value={formData.type} 
                             onChange={handleChange} 
                             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#FF6600] outline-none transition-all bg-white text-gray-600"
