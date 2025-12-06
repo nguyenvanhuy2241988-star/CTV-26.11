@@ -20,36 +20,25 @@ const ContactForm: React.FC = () => {
   };
 
   const handleSubmit = (e: React.FormEvent) => {
-    // Không dùng e.preventDefault() để form tự động submit vào iframe
-    if (status === 'submitting') {
-        e.preventDefault();
-        return;
-    }
+    // Để form tự động submit sang tab mới (Native Browser Behavior)
+    // Chỉ cập nhật UI để hiển thị trạng thái "Đang xử lý" tạm thời ở trang hiện tại
+    setStatus('success'); // Giả lập success ở trang hiện tại để UX tốt hơn
     
-    setStatus('submitting');
-
-    // Giả lập thời gian chờ để hiển thị loading, sau đó báo thành công
-    // Dữ liệu thực tế đã được trình duyệt gửi đi qua iframe
+    // Reset form sau 3 giây
     setTimeout(() => {
-        setStatus('success');
         setFormData({
             "Họ tên": '',
             "Số điện thoại": '',
             "Khu vực": '',
             "Mô hình": ''
         });
-        
-        // Reset lại trạng thái sau 8 giây
-        setTimeout(() => setStatus('idle'), 8000);
-    }, 2000);
+        setStatus('idle');
+    }, 5000);
   };
 
   return (
     <section id="contact" className="grid grid-cols-1 lg:grid-cols-[1fr_1.3fr] gap-8 lg:gap-12 items-start mb-16 scroll-mt-24">
       
-      {/* Iframe ẩn để hứng kết quả submit form, tránh reload trang */}
-      <iframe name="hidden_iframe" id="hidden_iframe" style={{ display: 'none' }}></iframe>
-
       {/* Left Visual */}
       <div className="pt-0 lg:pt-4 text-center lg:text-left">
         <div className="inline-flex items-center gap-2 text-red-600 font-bold mb-3 uppercase tracking-wider text-[10px] md:text-xs bg-red-50 px-3 py-1 rounded-full border border-red-100 animate-pulse">
@@ -89,20 +78,20 @@ const ContactForm: React.FC = () => {
         {status === 'success' ? (
             <div className="flex flex-col items-center justify-center py-12 text-center bg-green-50 rounded-2xl border border-green-100 animate-in fade-in zoom-in">
                 <CheckCircle2 size={48} className="text-green-600 mb-4" />
-                <h4 className="text-xl font-bold text-green-800 mb-2">Đăng ký thành công!</h4>
+                <h4 className="text-xl font-bold text-green-800 mb-2">Đang chuyển tiếp...</h4>
                 <p className="text-gray-600 text-sm mb-6">
-                    Hệ thống đã ghi nhận thông tin. Bộ phận kinh doanh sẽ gửi báo giá qua Zalo 
-                    <strong> {formData["Số điện thoại"] || "của bạn"}</strong> trong 5 phút nữa.
+                    Vui lòng kiểm tra tab mới vừa mở ra để xác nhận (Nếu có yêu cầu Captcha).<br/>
+                    Sau đó bộ phận kinh doanh sẽ liên hệ ngay!
                 </p>
                 <Button variant="outline" onClick={() => setStatus('idle')} size="sm">
-                    Gửi lại / Đăng ký thêm
+                    Quay lại form
                 </Button>
             </div>
         ) : (
             <form 
                 action="https://formsubmit.co/nguyenvanhuy2241988@gmail.com" 
                 method="POST" 
-                target="hidden_iframe"
+                target="_blank"
                 onSubmit={handleSubmit}
                 className="space-y-4 pt-3"
             >
@@ -110,6 +99,8 @@ const ContactForm: React.FC = () => {
                 <input type="hidden" name="_captcha" value="false" />
                 <input type="hidden" name="_template" value="table" />
                 <input type="hidden" name="_subject" value="🔥 KHÁCH MỚI ĐĂNG KÝ BÁO GIÁ - CVT" />
+                {/* Quay lại trang web sau khi gửi xong (Optional) */}
+                <input type="hidden" name="_next" value="https://cvt.com.vn/" />
                 
                 {/* Name & Phone */}
                 <div className="space-y-4">
@@ -169,14 +160,9 @@ const ContactForm: React.FC = () => {
                 <Button 
                     type="submit" 
                     variant="super-cta" 
-                    disabled={status === 'submitting'}
                     className="w-full justify-center py-4 text-base uppercase font-extrabold tracking-wide mt-2"
                 >
-                    {status === 'submitting' ? (
-                        'ĐANG XỬ LÝ...' 
-                    ) : (
-                        <><Download size={20} /> TẢI BÁO GIÁ NGAY</>
-                    )}
+                    <><Download size={20} /> TẢI BÁO GIÁ NGAY</>
                 </Button>
                 
                 {/* Trust Note */}
