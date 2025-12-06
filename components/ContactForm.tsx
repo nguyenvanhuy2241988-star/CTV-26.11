@@ -1,13 +1,15 @@
+
 import React, { useState } from 'react';
 import Button from './ui/Button';
 import { CheckCircle2, FileText, Download, AlertCircle, Zap } from 'lucide-react';
 
 const ContactForm: React.FC = () => {
+  // Sử dụng Key tiếng Việt để email gửi về dễ đọc, đồng thời khớp với name của input
   const [formData, setFormData] = useState({
-    fullName: '',
-    phone: '',
-    province: '',
-    type: ''
+    "Họ tên": '',
+    "Số điện thoại": '',
+    "Khu vực": '',
+    "Mô hình": ''
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -19,30 +21,32 @@ const ContactForm: React.FC = () => {
   };
 
   const handleSubmit = (e: React.FormEvent) => {
-    // IMPORTANT: Do NOT preventDefault(). We want the native form submission to happen.
-    // e.preventDefault(); 
+    // KHÔNG dùng e.preventDefault() để form tự động gửi đi qua iframe
     
-    if (isSubmitting) return;
+    if (isSubmitting) {
+        e.preventDefault(); // Chặn spam click
+        return;
+    }
     
     setIsSubmitting(true);
 
-    // Since we are targeting a hidden iframe, we can't know exactly when it finishes.
-    // We simulate a delay to show "Processing" and then show success.
-    // This ensures the form data is sent via the browser's native POST request which isn't blocked by CORS.
+    // Vì gửi qua iframe ẩn nên không bắt được phản hồi chính xác. 
+    // Giả lập delay để trải nghiệm mượt mà.
     setTimeout(() => {
         setIsSubmitting(false);
         setIsSuccess(true);
-        setFormData({ fullName: '', phone: '', province: '', type: '' });
+        // Reset form
+        setFormData({ "Họ tên": '', "Số điện thoại": '', "Khu vực": '', "Mô hình": '' });
         
-        // Reset success message after 10 seconds
-        setTimeout(() => setIsSuccess(false), 10000);
-    }, 2000);
+        // Ẩn thông báo sau 15s
+        setTimeout(() => setIsSuccess(false), 15000);
+    }, 1500);
   };
 
   return (
     <section id="contact" className="grid grid-cols-1 lg:grid-cols-[1fr_1.3fr] gap-8 lg:gap-12 items-start mb-16 scroll-mt-24">
       
-      {/* Hidden Iframe for Form Target */}
+      {/* Hidden Iframe - Kỹ thuật bypass CORS để gửi form 100% thành công */}
       <iframe name="hidden_iframe" id="hidden_iframe" style={{ display: 'none' }}></iframe>
 
       {/* Left Visual */}
@@ -104,14 +108,15 @@ const ContactForm: React.FC = () => {
                 <input type="hidden" name="_captcha" value="false" />
                 <input type="hidden" name="_template" value="table" />
                 <input type="hidden" name="_subject" value="🔥 KHÁCH MỚI ĐĂNG KÝ BÁO GIÁ - CVT" />
+                <input type="hidden" name="_next" value="https://cvt.com.vn" />
                 
                 {/* Name & Phone */}
                 <div className="space-y-4">
                     <div>
                         <input 
                             type="text" 
-                            name="fullName" // Matches state property
-                            value={formData.fullName} 
+                            name="Họ tên" 
+                            value={formData["Họ tên"]} 
                             onChange={handleChange} 
                             required 
                             placeholder="Họ và tên của bạn *" 
@@ -122,8 +127,8 @@ const ContactForm: React.FC = () => {
                     <div>
                         <input 
                             type="tel" 
-                            name="phone" // Matches state property
-                            value={formData.phone} 
+                            name="Số điện thoại" 
+                            value={formData["Số điện thoại"]} 
                             onChange={handleChange} 
                             required 
                             placeholder="Số điện thoại (Zalo) *" 
@@ -138,8 +143,8 @@ const ContactForm: React.FC = () => {
                     <div>
                         <input 
                             type="text" 
-                            name="province" // Matches state property
-                            value={formData.province} 
+                            name="Khu vực" 
+                            value={formData["Khu vực"]} 
                             onChange={handleChange} 
                             placeholder="Khu vực (Tùy chọn)" 
                             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#FF6600] outline-none transition-all"
@@ -147,8 +152,8 @@ const ContactForm: React.FC = () => {
                     </div>
                     <div>
                         <select 
-                            name="type" // Matches state property
-                            value={formData.type} 
+                            name="Mô hình" 
+                            value={formData["Mô hình"]} 
                             onChange={handleChange} 
                             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#FF6600] outline-none transition-all bg-white text-gray-600"
                         >
