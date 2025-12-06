@@ -12,43 +12,17 @@ const ContactForm: React.FC = () => {
     "Mô hình": ''
   });
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    // KHÔNG dùng e.preventDefault() để form tự động gửi đi qua iframe
-    
-    if (isSubmitting) {
-        e.preventDefault(); // Chặn spam click
-        return;
-    }
-    
-    setIsSubmitting(true);
-
-    // Vì gửi qua iframe ẩn nên không bắt được phản hồi chính xác. 
-    // Giả lập delay để trải nghiệm mượt mà.
-    setTimeout(() => {
-        setIsSubmitting(false);
-        setIsSuccess(true);
-        // Reset form
-        setFormData({ "Họ tên": '', "Số điện thoại": '', "Khu vực": '', "Mô hình": '' });
-        
-        // Ẩn thông báo sau 15s
-        setTimeout(() => setIsSuccess(false), 15000);
-    }, 1500);
-  };
+  // Chúng ta loại bỏ hàm handleSubmit phức tạp để dùng hành vi mặc định của trình duyệt
+  // Điều này giúp mở trang FormSubmit để bạn có thể xác thực Captcha/Kích hoạt lại email
 
   return (
     <section id="contact" className="grid grid-cols-1 lg:grid-cols-[1fr_1.3fr] gap-8 lg:gap-12 items-start mb-16 scroll-mt-24">
       
-      {/* Hidden Iframe - Kỹ thuật bypass CORS để gửi form 100% thành công */}
-      <iframe name="hidden_iframe" id="hidden_iframe" style={{ display: 'none' }}></iframe>
-
       {/* Left Visual */}
       <div className="pt-0 lg:pt-4 text-center lg:text-left">
         <div className="inline-flex items-center gap-2 text-red-600 font-bold mb-3 uppercase tracking-wider text-[10px] md:text-xs bg-red-50 px-3 py-1 rounded-full border border-red-100 animate-pulse">
@@ -85,99 +59,87 @@ const ContactForm: React.FC = () => {
             Chỉ mất 30 giây để điền
         </div>
 
-        {isSuccess ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center bg-green-50 rounded-2xl border border-green-100 animate-in fade-in zoom-in">
-                <CheckCircle2 size={48} className="text-green-600 mb-4" />
-                <h4 className="text-xl font-bold text-green-800 mb-2">Đăng ký thành công!</h4>
-                <p className="text-gray-600 text-sm">Bộ phận kinh doanh sẽ gửi báo giá qua Zalo SĐT bạn vừa nhập trong 5 phút nữa.</p>
-                <div className="mt-6">
-                    <Button variant="outline" onClick={() => setIsSuccess(false)} size="sm">
-                        Đăng ký thêm
-                    </Button>
+        <form 
+            action="https://formsubmit.co/nguyenvanhuy2241988@gmail.com" 
+            method="POST" 
+            target="_blank"
+            className="space-y-4 pt-3"
+        >
+            {/* Configuration Fields for FormSubmit */}
+            {/* Tắt captcha để gửi nhanh, nhưng nếu FormSubmit nghi ngờ spam, nó vẫn sẽ hiện captcha ở tab mới */}
+            <input type="hidden" name="_captcha" value="false" />
+            <input type="hidden" name="_template" value="table" />
+            <input type="hidden" name="_subject" value="🔥 KHÁCH MỚI ĐĂNG KÝ BÁO GIÁ - CVT" />
+            {/* Sau khi gửi thành công, quay về trang web */}
+            <input type="hidden" name="_next" value="https://cvt.com.vn" />
+            
+            {/* Name & Phone */}
+            <div className="space-y-4">
+                <div>
+                    <input 
+                        type="text" 
+                        name="Họ tên" 
+                        value={formData["Họ tên"]} 
+                        onChange={handleChange} 
+                        required 
+                        placeholder="Họ và tên của bạn *" 
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3.5 text-base focus:border-[#FF6600] focus:ring-2 focus:ring-orange-100 outline-none transition-all bg-gray-50 focus:bg-white placeholder:text-gray-400" 
+                        style={{ fontSize: '16px' }}
+                    />
+                </div>
+                <div>
+                    <input 
+                        type="tel" 
+                        name="Số điện thoại" 
+                        value={formData["Số điện thoại"]} 
+                        onChange={handleChange} 
+                        required 
+                        placeholder="Số điện thoại (Zalo) *" 
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3.5 text-base focus:border-[#FF6600] focus:ring-2 focus:ring-orange-100 outline-none transition-all bg-gray-50 focus:bg-white placeholder:text-gray-400" 
+                        style={{ fontSize: '16px' }}
+                    />
                 </div>
             </div>
-        ) : (
-            <form 
-                action="https://formsubmit.co/nguyenvanhuy2241988@gmail.com" 
-                method="POST" 
-                target="hidden_iframe"
-                onSubmit={handleSubmit} 
-                className="space-y-4 pt-3"
-            >
-                {/* Configuration Fields for FormSubmit */}
-                <input type="hidden" name="_captcha" value="false" />
-                <input type="hidden" name="_template" value="table" />
-                <input type="hidden" name="_subject" value="🔥 KHÁCH MỚI ĐĂNG KÝ BÁO GIÁ - CVT" />
-                <input type="hidden" name="_next" value="https://cvt.com.vn" />
-                
-                {/* Name & Phone */}
-                <div className="space-y-4">
-                    <div>
-                        <input 
-                            type="text" 
-                            name="Họ tên" 
-                            value={formData["Họ tên"]} 
-                            onChange={handleChange} 
-                            required 
-                            placeholder="Họ và tên của bạn *" 
-                            className="w-full rounded-lg border border-gray-300 px-4 py-3.5 text-base focus:border-[#FF6600] focus:ring-2 focus:ring-orange-100 outline-none transition-all bg-gray-50 focus:bg-white placeholder:text-gray-400" 
-                            style={{ fontSize: '16px' }}
-                        />
-                    </div>
-                    <div>
-                        <input 
-                            type="tel" 
-                            name="Số điện thoại" 
-                            value={formData["Số điện thoại"]} 
-                            onChange={handleChange} 
-                            required 
-                            placeholder="Số điện thoại (Zalo) *" 
-                            className="w-full rounded-lg border border-gray-300 px-4 py-3.5 text-base focus:border-[#FF6600] focus:ring-2 focus:ring-orange-100 outline-none transition-all bg-gray-50 focus:bg-white placeholder:text-gray-400" 
-                            style={{ fontSize: '16px' }}
-                        />
-                    </div>
+            
+            {/* Optional Fields */}
+            <div className="grid grid-cols-2 gap-3">
+                <div>
+                    <input 
+                        type="text" 
+                        name="Khu vực" 
+                        value={formData["Khu vực"]} 
+                        onChange={handleChange} 
+                        placeholder="Khu vực (Tùy chọn)" 
+                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#FF6600] outline-none transition-all"
+                    />
                 </div>
-                
-                {/* Optional Fields */}
-                <div className="grid grid-cols-2 gap-3">
-                    <div>
-                        <input 
-                            type="text" 
-                            name="Khu vực" 
-                            value={formData["Khu vực"]} 
-                            onChange={handleChange} 
-                            placeholder="Khu vực (Tùy chọn)" 
-                            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#FF6600] outline-none transition-all"
-                        />
-                    </div>
-                    <div>
-                        <select 
-                            name="Mô hình" 
-                            value={formData["Mô hình"]} 
-                            onChange={handleChange} 
-                            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#FF6600] outline-none transition-all bg-white text-gray-600"
-                        >
-                            <option value="">Mô hình (Tùy chọn)</option>
-                            <option value="Đại lý / NPP">Nhà Phân Phối</option>
-                            <option value="Tạp hóa / Minimart">Tạp hóa / Minimart</option>
-                            <option value="Cafe / F&B">Cafe / F&B</option>
-                        </select>
-                    </div>
+                <div>
+                    <select 
+                        name="Mô hình" 
+                        value={formData["Mô hình"]} 
+                        onChange={handleChange} 
+                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-[#FF6600] outline-none transition-all bg-white text-gray-600"
+                    >
+                        <option value="">Mô hình (Tùy chọn)</option>
+                        <option value="Đại lý / NPP">Nhà Phân Phối</option>
+                        <option value="Tạp hóa / Minimart">Tạp hóa / Minimart</option>
+                        <option value="Cafe / F&B">Cafe / F&B</option>
+                    </select>
                 </div>
+            </div>
 
-                <Button type="submit" variant="super-cta" disabled={isSubmitting} className="w-full justify-center py-4 text-base uppercase font-extrabold tracking-wide mt-2">
-                    {isSubmitting ? 'ĐANG XỬ LÝ...' : <><Download size={20} /> TẢI BÁO GIÁ NGAY</>}
-                </Button>
-                
-                {/* Trust Note */}
-                <div className="flex items-center justify-center gap-2 mt-2">
-                    <p className="text-[10px] text-gray-400 flex items-center gap-1">
-                        <Zap size={10} fill="currentColor" className="text-yellow-500" />
-                        Cam kết bảo mật thông tin 100%
-                    </p>
-                </div>
-            </form>
-        )}
+            <Button type="submit" variant="super-cta" className="w-full justify-center py-4 text-base uppercase font-extrabold tracking-wide mt-2">
+                <Download size={20} /> TẢI BÁO GIÁ NGAY
+            </Button>
+            
+            {/* Trust Note */}
+            <div className="flex items-center justify-center gap-2 mt-2">
+                <p className="text-[10px] text-gray-400 flex items-center gap-1">
+                    <Zap size={10} fill="currentColor" className="text-yellow-500" />
+                    Cam kết bảo mật thông tin 100%
+                </p>
+            </div>
+        </form>
       </div>
     </section>
   );
