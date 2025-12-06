@@ -17,9 +17,6 @@ const ContactForm: React.FC = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // Chúng ta loại bỏ hàm handleSubmit phức tạp để dùng hành vi mặc định của trình duyệt
-  // Điều này giúp mở trang FormSubmit để bạn có thể xác thực Captcha/Kích hoạt lại email
-
   return (
     <section id="contact" className="grid grid-cols-1 lg:grid-cols-[1fr_1.3fr] gap-8 lg:gap-12 items-start mb-16 scroll-mt-24">
       
@@ -62,7 +59,7 @@ const ContactForm: React.FC = () => {
         <form 
             action="https://formsubmit.co/nguyenvanhuy2241988@gmail.com" 
             method="POST" 
-            target="_blank"
+            target="_self"
             className="space-y-4 pt-3"
         >
             {/* Configuration Fields for FormSubmit */}
