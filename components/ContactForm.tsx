@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import Button from './ui/Button';
-import { CheckCircle2, FileText, Download, AlertCircle, Zap } from 'lucide-react';
+import { CheckCircle2, FileText, Download, AlertCircle, Zap, Send } from 'lucide-react';
 
 const ContactForm: React.FC = () => {
   // Sử dụng Key tiếng Việt để email gửi về dễ đọc
@@ -12,28 +12,51 @@ const ContactForm: React.FC = () => {
     "Mô hình": ''
   });
 
-  const [status, setStatus] = useState<'idle' | 'submitting' | 'success'>('idle');
+  const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    // Để form tự động submit sang tab mới (Native Browser Behavior)
-    // Chỉ cập nhật UI để hiển thị trạng thái "Đang xử lý" tạm thời ở trang hiện tại
-    setStatus('success'); // Giả lập success ở trang hiện tại để UX tốt hơn
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault(); // Ngăn chặn tải lại trang hoặc mở tab mới
     
-    // Reset form sau 3 giây
-    setTimeout(() => {
-        setFormData({
-            "Họ tên": '',
-            "Số điện thoại": '',
-            "Khu vực": '',
-            "Mô hình": ''
+    if (status === 'submitting') return;
+    setStatus('submitting');
+
+    try {
+        // Sử dụng endpoint /ajax/ của FormSubmit để gửi ngầm
+        const response = await fetch("https://formsubmit.co/ajax/nguyenvanhuy2241988@gmail.com", {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            body: JSON.stringify({
+                ...formData,
+                _subject: "🔥 KHÁCH MỚI ĐĂNG KÝ BÁO GIÁ - CVT",
+                _captcha: "false", // Tắt Captcha để gửi nhanh hơn
+                _template: "table"
+            })
         });
-        setStatus('idle');
-    }, 5000);
+
+        if (response.ok) {
+            setStatus('success');
+            // Reset form
+            setFormData({
+                "Họ tên": '',
+                "Số điện thoại": '',
+                "Khu vực": '',
+                "Mô hình": ''
+            });
+        } else {
+            setStatus('error');
+        }
+    } catch (error) {
+        console.error("Lỗi gửi form:", error);
+        setStatus('error');
+    }
   };
 
   return (
@@ -77,30 +100,19 @@ const ContactForm: React.FC = () => {
 
         {status === 'success' ? (
             <div className="flex flex-col items-center justify-center py-12 text-center bg-green-50 rounded-2xl border border-green-100 animate-in fade-in zoom-in">
-                <CheckCircle2 size={48} className="text-green-600 mb-4" />
-                <h4 className="text-xl font-bold text-green-800 mb-2">Đang chuyển tiếp...</h4>
-                <p className="text-gray-600 text-sm mb-6">
-                    Vui lòng kiểm tra tab mới vừa mở ra để xác nhận (Nếu có yêu cầu Captcha).<br/>
-                    Sau đó bộ phận kinh doanh sẽ liên hệ ngay!
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4 text-green-600">
+                    <CheckCircle2 size={32} />
+                </div>
+                <h4 className="text-xl font-bold text-green-800 mb-2">Đăng ký thành công!</h4>
+                <p className="text-gray-600 text-sm mb-6 max-w-xs mx-auto">
+                    Hệ thống đã ghi nhận thông tin. Bộ phận kinh doanh sẽ gửi báo giá qua Zalo SĐT của bạn trong 5 phút nữa.
                 </p>
                 <Button variant="outline" onClick={() => setStatus('idle')} size="sm">
-                    Quay lại form
+                    Đăng ký thêm
                 </Button>
             </div>
         ) : (
-            <form 
-                action="https://formsubmit.co/nguyenvanhuy2241988@gmail.com" 
-                method="POST" 
-                target="_blank"
-                onSubmit={handleSubmit}
-                className="space-y-4 pt-3"
-            >
-                {/* Configuration Fields for FormSubmit */}
-                <input type="hidden" name="_captcha" value="false" />
-                <input type="hidden" name="_template" value="table" />
-                <input type="hidden" name="_subject" value="🔥 KHÁCH MỚI ĐĂNG KÝ BÁO GIÁ - CVT" />
-                {/* Quay lại trang web sau khi gửi xong (Optional) */}
-                <input type="hidden" name="_next" value="https://cvt.com.vn/" />
+            <form onSubmit={handleSubmit} className="space-y-4 pt-3">
                 
                 {/* Name & Phone */}
                 <div className="space-y-4">
@@ -160,10 +172,21 @@ const ContactForm: React.FC = () => {
                 <Button 
                     type="submit" 
                     variant="super-cta" 
+                    disabled={status === 'submitting'}
                     className="w-full justify-center py-4 text-base uppercase font-extrabold tracking-wide mt-2"
                 >
-                    <><Download size={20} /> TẢI BÁO GIÁ NGAY</>
+                    {status === 'submitting' ? (
+                        'ĐANG GỬI...'
+                    ) : (
+                        <><Download size={20} /> TẢI BÁO GIÁ NGAY</>
+                    )}
                 </Button>
+                
+                {status === 'error' && (
+                    <div className="text-red-500 text-xs text-center font-bold bg-red-50 p-2 rounded">
+                        Có lỗi xảy ra. Vui lòng thử lại hoặc gọi Hotline.
+                    </div>
+                )}
                 
                 {/* Trust Note */}
                 <div className="flex items-center justify-center gap-2 mt-2">
