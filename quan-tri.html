@@ -1,0 +1,758 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Quản trị CVT | Bảng điều khiển</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/brand.css">
+  <style>
+    :root {
+      --ink: #183e2b;
+      --cream: #fffdf5;
+      --green: #215b38;
+      --purple: #7254a3;
+      --border: #d4e0cf;
+    }
+    body {
+      margin: 0;
+      background: #fbfdf9;
+      color: #174b30;
+      font-family: 'Be Vietnam Pro', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .admin-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 24px;
+    }
+    .admin-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 24px;
+      border-bottom: 2px solid var(--border);
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .admin-header h1 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 800;
+    }
+    .admin-header .eyebrow {
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      font-weight: 700;
+      color: #55775c;
+    }
+    .admin-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .btn {
+      padding: 10px 20px;
+      border-radius: 99px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.2s;
+    }
+    .btn-dark {
+      background: var(--ink);
+      color: white;
+    }
+    .btn-dark:hover {
+      background: #286140;
+    }
+    .btn-outline {
+      border-color: var(--ink);
+      background: transparent;
+      color: var(--ink);
+    }
+    .btn-outline:hover {
+      background: #eef5eb;
+    }
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      padding: 10px 18px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: white;
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      background: var(--ink);
+      color: white;
+      border-color: var(--ink);
+    }
+    .tab-badge {
+      background: #e65100;
+      color: white;
+      border-radius: 99px;
+      padding: 2px 7px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .filter-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: white;
+      padding: 16px 20px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .filter-bar select {
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #fdfdfd;
+      font: inherit;
+      font-size: 13px;
+      color: var(--ink);
+    }
+    .lead-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px 24px;
+      margin-bottom: 16px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 20px;
+      align-items: start;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    }
+    .lead-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 6px;
+      margin-bottom: 8px;
+    }
+    .badge-npp { background: #e3f2fd; color: #0d47a1; }
+    .badge-retail { background: #f3e5f5; color: #4a148c; }
+    .badge-wholesale { background: #fff3e0; color: #e65100; }
+    .lead-title {
+      font-size: 18px;
+      font-weight: 800;
+      margin: 0 0 6px;
+      color: var(--ink);
+    }
+    .lead-meta {
+      font-size: 13px;
+      color: #4b6653;
+      margin-bottom: 8px;
+      line-height: 1.6;
+    }
+    .lead-meta a {
+      color: #0068ff;
+      text-decoration: underline;
+    }
+    .lead-note {
+      background: #f7faf5;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      line-height: 1.6;
+      border-left: 3px solid #215b38;
+      margin-top: 8px;
+    }
+    .lead-time {
+      font-size: 11px;
+      color: #88998a;
+      margin-top: 10px;
+    }
+    .status-select {
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+    }
+    .status-new { background: #fff3e0; color: #c2410c; }
+    .status-contacted { background: #e0f2fe; color: #0369a1; }
+    .status-closed { background: #dcfce7; color: #15803d; }
+    
+    /* Login Form Modal / Box */
+    .login-box {
+      max-width: 420px;
+      margin: 80px auto;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 36px 30px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+      text-align: center;
+    }
+    .login-box h2 {
+      font-size: 22px;
+      margin: 12px 0 6px;
+      color: var(--ink);
+    }
+    .login-box p {
+      font-size: 13px;
+      color: #55775c;
+      margin-bottom: 24px;
+    }
+    .login-box input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid #bdcdb7;
+      border-radius: 10px;
+      font-size: 14px;
+      margin-bottom: 16px;
+      box-sizing: border-box;
+      outline: none;
+    }
+    .login-box input:focus {
+      border-color: #215b38;
+      box-shadow: 0 0 0 3px rgba(33,91,56,0.15);
+    }
+    
+    /* Content Layout */
+    .cms-layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 24px;
+    }
+    .cms-list {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      max-height: 700px;
+      overflow-y: auto;
+    }
+    .cms-item-btn {
+      width: 100%;
+      text-align: left;
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: transparent;
+      border: 1px solid transparent;
+      cursor: pointer;
+      margin-bottom: 8px;
+      transition: all 0.2s;
+    }
+    .cms-item-btn:hover {
+      background: #f0f7ec;
+    }
+    .cms-item-btn.active {
+      background: #eef7ed;
+      border-color: #215b38;
+    }
+    .cms-item-btn b {
+      display: block;
+      font-size: 14px;
+      color: var(--ink);
+    }
+    .cms-item-btn span {
+      font-size: 11px;
+      color: #6d8471;
+    }
+    .cms-editor {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+    }
+    .editor-field {
+      margin-bottom: 16px;
+    }
+    .editor-field label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: var(--ink);
+    }
+    .editor-field input, .editor-field textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font: inherit;
+      font-size: 13px;
+      box-sizing: border-box;
+      outline: none;
+    }
+    .editor-field input:focus, .editor-field textarea:focus {
+      border-color: #215b38;
+    }
+    .msg-bar {
+      padding: 10px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      display: none;
+    }
+    .msg-success { background: #dcfce7; color: #15803d; }
+    .msg-error { background: #fee2e2; color: #991b1b; }
+    @media (max-width: 768px) {
+      .cms-layout { grid-template-columns: 1fr; }
+      .lead-card { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="admin-container">
+    
+    <!-- Login Screen -->
+    <div id="login-view" class="login-box">
+      <img src="/assets/cvt-original-35f3d9_6bffadc2cad54854a5c74f8b35c71be8.png" alt="CVT" width="60">
+      <h2>Quản trị CVT</h2>
+      <p>Nhập mật khẩu quản trị để xem danh sách đối tác và nội dung</p>
+      <div id="login-msg" class="msg-bar msg-error"></div>
+      <form onsubmit="handleLogin(event)">
+        <input type="password" id="admin-pass" placeholder="Mật khẩu quản trị..." required autofocus>
+        <button type="submit" class="btn btn-dark" style="width: 100%;">Đăng nhập ↗</button>
+      </form>
+      <div style="margin-top: 18px;">
+        <a href="/" style="font-size: 12px; color: #55775c; text-decoration: underline;">Quay lại trang chủ</a>
+      </div>
+    </div>
+
+    <!-- Main Dashboard Screen -->
+    <div id="dashboard-view" style="display: none;">
+      <header class="admin-header">
+        <div>
+          <span class="eyebrow">CVT BRAND MANAGEMENT</span>
+          <h1>Hệ thống quản trị CVT</h1>
+        </div>
+        <div class="admin-actions">
+          <button class="btn btn-outline" onclick="loadData()">↻ Tải lại</button>
+          <button class="btn btn-outline" onclick="handleLogout()">Đăng xuất</button>
+          <a class="btn btn-dark" href="/" target="_blank">Xem website ↗</a>
+        </div>
+      </header>
+
+      <div id="status-msg" class="msg-bar"></div>
+
+      <!-- Navigation Tabs -->
+      <nav class="tabs">
+        <button class="tab-btn active" data-tab="requests" onclick="switchTab('requests')">
+          📥 Yêu cầu hợp tác <span class="tab-badge" id="new-count" style="display: none;">0</span>
+        </button>
+        <button class="tab-btn" data-tab="products" onclick="switchTab('products')">
+          📦 Sản phẩm
+        </button>
+        <button class="tab-btn" data-tab="posts" onclick="switchTab('posts')">
+          📰 Tin tức & cẩm nang
+        </button>
+        <button class="tab-btn" data-tab="docs" onclick="switchTab('docs')">
+          📄 Hồ sơ & tài liệu
+        </button>
+        <button class="tab-btn" data-tab="outlets" onclick="switchTab('outlets')">
+          📍 Điểm bán xác nhận
+        </button>
+      </nav>
+
+      <!-- Requests / Leads Tab -->
+      <section id="tab-requests-view">
+        <div class="filter-bar">
+          <div>
+            <b id="lead-summary">0 yêu cầu</b>
+          </div>
+          <div>
+            <label style="font-size: 13px; font-weight: 600; margin-right: 8px;">Lọc trạng thái:</label>
+            <select id="status-filter" onchange="renderRequests()">
+              <option value="">Tất cả trạng thái</option>
+              <option value="new">Mới tiếp nhận</option>
+              <option value="contacted">Đã liên hệ</option>
+              <option value="closed">Đã hoàn tất</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="requests-list">Đang tải danh sách...</div>
+      </section>
+
+      <!-- CMS Items Tab -->
+      <section id="tab-cms-view" style="display: none;">
+        <div class="cms-layout">
+          <div>
+            <div style="margin-bottom: 12px;">
+              <button class="btn btn-dark" style="width: 100%;" onclick="startNewCmsItem()">+ Thêm nội dung mới</button>
+            </div>
+            <div class="cms-list" id="cms-list-container"></div>
+          </div>
+          <div>
+            <div class="cms-editor" id="cms-editor-container">
+              <p style="color: #666;">Chọn một mục bên trái hoặc bấm "Thêm nội dung mới" để chỉnh sửa.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <script>
+    let appData = { requests: [], entries: [], defaults: {} };
+    let currentTab = 'requests';
+    let currentEditingItem = null;
+
+    async function checkAuth() {
+      try {
+        const res = await fetch('/api/admin');
+        if (res.ok) {
+          const data = await res.json();
+          appData = data;
+          showDashboard();
+        } else {
+          showLogin();
+        }
+      } catch (e) {
+        showLogin();
+      }
+    }
+
+    function showLogin() {
+      document.getElementById('login-view').style.display = 'block';
+      document.getElementById('dashboard-view').style.display = 'none';
+    }
+
+    function showDashboard() {
+      document.getElementById('login-view').style.display = 'none';
+      document.getElementById('dashboard-view').style.display = 'block';
+      renderView();
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const pass = document.getElementById('admin-pass').value;
+      const msg = document.getElementById('login-msg');
+      msg.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: pass })
+        });
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          await loadData();
+        } else {
+          msg.textContent = data.error || 'Mật khẩu quản trị không chính xác.';
+          msg.style.display = 'block';
+        }
+      } catch (err) {
+        msg.textContent = 'Lỗi kết nối máy chủ.';
+        msg.style.display = 'block';
+      }
+    }
+
+    async function handleLogout() {
+      await fetch('/api/admin/logout', { method: 'POST' });
+      showLogin();
+    }
+
+    async function loadData() {
+      try {
+        const res = await fetch('/api/admin');
+        if (res.ok) {
+          appData = await res.json();
+          showDashboard();
+        } else {
+          showLogin();
+        }
+      } catch (err) {
+        showMessage('Không thể tải dữ liệu: ' + err.message, 'error');
+      }
+    }
+
+    function showMessage(text, type = 'success') {
+      const el = document.getElementById('status-msg');
+      el.className = 'msg-bar ' + (type === 'success' ? 'msg-success' : 'msg-error');
+      el.textContent = text;
+      el.style.display = 'block';
+      setTimeout(() => { el.style.display = 'none'; }, 4000);
+    }
+
+    function switchTab(tab) {
+      currentTab = tab;
+      document.querySelectorAll('.tab-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.tab === tab);
+      });
+      renderView();
+    }
+
+    function renderView() {
+      if (currentTab === 'requests') {
+        document.getElementById('tab-requests-view').style.display = 'block';
+        document.getElementById('tab-cms-view').style.display = 'none';
+        renderRequests();
+      } else {
+        document.getElementById('tab-requests-view').style.display = 'none';
+        document.getElementById('tab-cms-view').style.display = 'block';
+        renderCms();
+      }
+    }
+
+    function renderRequests() {
+      const filter = document.getElementById('status-filter').value;
+      const list = (appData.requests || []).filter(r => !filter || r.status === filter);
+      const newCount = (appData.requests || []).filter(r => r.status === 'new').length;
+      
+      const badge = document.getElementById('new-count');
+      if (newCount > 0) {
+        badge.textContent = newCount;
+        badge.style.display = 'inline-block';
+      } else {
+        badge.style.display = 'none';
+      }
+
+      document.getElementById('lead-summary').textContent = 
+        `${(appData.requests || []).length} yêu cầu (${newCount} mới chưa liên hệ)`;
+
+      const container = document.getElementById('requests-list');
+      if (list.length === 0) {
+        container.innerHTML = '<div style="background:white;padding:40px;border-radius:16px;text-align:center;border:1px solid var(--border);">Không có yêu cầu nào phù hợp.</div>';
+        return;
+      }
+
+      container.innerHTML = list.map(r => {
+        let badgeClass = 'badge-wholesale';
+        if (r.audience === 'Nhà phân phối') badgeClass = 'badge-npp';
+        else if (r.audience === 'Siêu thị & chuỗi bán lẻ') badgeClass = 'badge-retail';
+
+        const statusClass = 'status-' + (r.status || 'new');
+        const formattedDate = new Date(r.createdAt || r.created_at || Date.now()).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+
+        return `
+          <article class="lead-card">
+            <div>
+              <span class="lead-badge ${badgeClass}">${r.audience || 'Hợp tác'}</span>
+              <h3 class="lead-title">${escapeHtml(r.company || r.name)}</h3>
+              <div class="lead-meta">
+                <b>${escapeHtml(r.name)}</b> · 
+                <a href="tel:${escapeHtml(r.phone)}">${escapeHtml(r.phone)}</a>
+                ${r.email ? ` · <a href="mailto:${escapeHtml(r.email)}">${escapeHtml(r.email)}</a>` : ''}
+              </div>
+              <div class="lead-meta">
+                <b>Mục đích:</b> ${escapeHtml(r.purpose || '')} · <b>Khu vực:</b> ${escapeHtml(r.region || '')}
+              </div>
+              ${r.sku ? `<div class="lead-meta"><b>Sản phẩm quan tâm:</b> ${escapeHtml(r.sku)}</div>` : ''}
+              ${r.note ? `<div class="lead-note">${escapeHtml(r.note)}</div>` : ''}
+              <div class="lead-time">Mã: ${escapeHtml(r.id)} · Thời gian: ${formattedDate}</div>
+            </div>
+            <div>
+              <select class="status-select ${statusClass}" onchange="updateLeadStatus('${r.id}', this.value)">
+                <option value="new" ${r.status === 'new' ? 'selected' : ''}>Mới tiếp nhận</option>
+                <option value="contacted" ${r.status === 'contacted' ? 'selected' : ''}>Đã liên hệ</option>
+                <option value="closed" ${r.status === 'closed' ? 'selected' : ''}>Đã hoàn tất</option>
+              </select>
+            </div>
+          </article>
+        `;
+      }).join('');
+    }
+
+    async function updateLeadStatus(id, newStatus) {
+      try {
+        const res = await fetch('/api/admin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'status', id: id, status: newStatus })
+        });
+        if (res.ok) {
+          showMessage('Đã cập nhật trạng thái yêu cầu.');
+          await loadData();
+        } else {
+          showMessage('Không thể cập nhật trạng thái.', 'error');
+        }
+      } catch (err) {
+        showMessage('Lỗi kết nối: ' + err.message, 'error');
+      }
+    }
+
+    function renderCms() {
+      const kind = currentTab;
+      const defaultItems = (appData.defaults && appData.defaults[kind]) || [];
+      const overrides = (appData.entries || []).filter(e => e.kind === kind);
+      
+      const map = new Map(defaultItems.map(p => [p.id, { id: p.id, kind: kind, published: 1, data: p }]));
+      for (const o of overrides) {
+        map.set(o.id, o);
+      }
+      const items = Array.from(map.values());
+
+      const listContainer = document.getElementById('cms-list-container');
+      listContainer.innerHTML = items.map(item => `
+        <button class="cms-item-btn ${currentEditingItem && currentEditingItem.id === item.id ? 'active' : ''}" onclick="selectCmsItem('${item.id}')">
+          <b>${escapeHtml(item.data.name || item.data.title || item.id)}</b>
+          <span>${item.published ? '✅ Đang hiển thị' : '📝 Bản nháp'}</span>
+        </button>
+      `).join('');
+
+      if (!currentEditingItem && items.length > 0) {
+        selectCmsItem(items[0].id);
+      } else if (currentEditingItem) {
+        renderCmsEditor();
+      }
+    }
+
+    function selectCmsItem(id) {
+      const kind = currentTab;
+      const defaultItems = (appData.defaults && appData.defaults[kind]) || [];
+      const overrides = (appData.entries || []).filter(e => e.kind === kind);
+      
+      const map = new Map(defaultItems.map(p => [p.id, { id: p.id, kind: kind, published: 1, data: p }]));
+      for (const o of overrides) {
+        map.set(o.id, o);
+      }
+      currentEditingItem = map.get(id);
+      renderCms();
+      renderCmsEditor();
+    }
+
+    function startNewCmsItem() {
+      const id = currentTab + '-' + Math.random().toString(36).substring(2, 9);
+      currentEditingItem = {
+        id: id,
+        kind: currentTab,
+        published: 0,
+        data: { id: id }
+      };
+      renderCmsEditor();
+    }
+
+    const fieldDefs = {
+      products: [
+        ['name', 'Tên sản phẩm'],
+        ['tag', 'Dòng giới thiệu ngắn'],
+        ['description', 'Mô tả chi tiết', 'textarea'],
+        ['grams', 'Trọng lượng (ví dụ: 75g)'],
+        ['price', 'Giá tham khảo (ví dụ: 40.000đ)'],
+        ['image', 'Đường dẫn ảnh'],
+        ['color', 'Màu nền (mã hex, ví dụ #eee9ff)'],
+        ['accent', 'Màu nhấn (mã hex)'],
+        ['note', 'Ghi chú']
+      ],
+      posts: [
+        ['title', 'Tiêu đề bài viết'],
+        ['category', 'Chuyên mục'],
+        ['summary', 'Tóm tắt ngắn', 'textarea'],
+        ['body', 'Nội dung chi tiết', 'textarea'],
+        ['image', 'Đường dẫn ảnh'],
+        ['source', 'Liên kết nguồn (nếu có)']
+      ],
+      docs: [
+        ['title', 'Tên tài liệu / hồ sơ'],
+        ['description', 'Mã hàng / phạm vi áp dụng', 'textarea'],
+        ['url', 'Đường dẫn bản PDF / ảnh (HTTPS)'],
+        ['date', 'Ngày ban hành / hiệu lực'],
+        ['issuer', 'Đơn vị phát hành']
+      ],
+      outlets: [
+        ['name', 'Tên cửa hàng'],
+        ['address', 'Địa chỉ đã xác nhận'],
+        ['city', 'Tỉnh / Thành phố'],
+        ['note', 'Ghi chú liên hệ / sản phẩm', 'textarea'],
+        ['url', 'Liên kết thông tin (HTTPS)']
+      ]
+    };
+
+    function renderCmsEditor() {
+      const container = document.getElementById('cms-editor-container');
+      if (!currentEditingItem) {
+        container.innerHTML = '<p>Chọn một mục để chỉnh sửa.</p>';
+        return;
+      }
+
+      const fields = fieldDefs[currentTab] || [];
+      const itemData = currentEditingItem.data || {};
+
+      let fieldsHtml = fields.map(([key, label, type]) => {
+        const val = escapeHtml(itemData[key] || '');
+        if (type === 'textarea') {
+          return `
+            <div class="editor-field">
+              <label>${label}</label>
+              <textarea rows="4" onchange="currentEditingItem.data['${key}'] = this.value">${val}</textarea>
+            </div>
+          `;
+        }
+        return `
+          <div class="editor-field">
+            <label>${label}</label>
+            <input type="text" value="${val}" onchange="currentEditingItem.data['${key}'] = this.value">
+          </div>
+        `;
+      }).join('');
+
+      container.innerHTML = `
+        <h3 style="margin-top:0;">Chỉnh sửa: ${escapeHtml(itemData.name || itemData.title || currentEditingItem.id)}</h3>
+        <form onsubmit="saveCmsItem(event)">
+          ${fieldsHtml}
+          <div style="margin: 18px 0;">
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;cursor:pointer;">
+              <input type="checkbox" id="published-toggle" ${currentEditingItem.published ? 'checked' : ''} onchange="currentEditingItem.published = this.checked ? 1 : 0">
+              Hiển thị nội dung này trên website chính thức
+            </label>
+          </div>
+          <button type="submit" class="btn btn-dark" style="padding: 12px 28px;">Lưu nội dung ↗</button>
+        </form>
+      `;
+    }
+
+    async function saveCmsItem(e) {
+      e.preventDefault();
+      try {
+        const res = await fetch('/api/admin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: currentEditingItem.id,
+            kind: currentTab,
+            published: currentEditingItem.published ? 1 : 0,
+            data: currentEditingItem.data
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          showMessage('Đã lưu nội dung thành công!');
+          await loadData();
+        } else {
+          showMessage(data.error || 'Chưa lưu được nội dung.', 'error');
+        }
+      } catch (err) {
+        showMessage('Lỗi kết nối: ' + err.message, 'error');
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    window.addEventListener('DOMContentLoaded', checkAuth);
+  </script>
+</body>
+</html>

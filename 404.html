@@ -1,0 +1,113 @@
+<!doctype html>
+<html>
+
+<head>
+  <title>404 Error: Page Not Found</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, follow">
+
+  <link type="image/png" href="https://www.wix.com/favicon.ico" rel="shortcut icon">
+  <link rel="stylesheet" href="https://static.parastorage.com/services/classic-error-pages-statics/dist/app.min.css">
+  <!-- Run `npx add-sentry -p test-studio-error-pages-app -t [TEAM]` to add a valid Sentry link. More information at: https://github.com/wix-private/fed-infra/tree/master/add-sentry -->
+
+  <link rel="stylesheet" href="https://static.parastorage.com/unpkg/@wix/wix-fonts@1.14.0/madeforDisplay.css">
+  <link rel="stylesheet" href="https://static.parastorage.com/unpkg/@wix/wix-fonts@1.14.0/madefor.css">
+  <link rel="stylesheet" href="https://use.typekit.net/peu4fpt.css">
+
+  <script src="https://static.parastorage.com/unpkg-semver/fedops-logger@5/fedops-logger.bundle.min.js"></script>
+
+  <script
+    src="https://static.parastorage.com/unpkg/react@18.2.0/umd/react.production.min.js"></script>
+  <script
+    src="https://static.parastorage.com/unpkg/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+
+   <script src="https://static.parastorage.com/unpkg-semver/header-footer-provider/app.bundle.min.js"></script>
+  <link rel="stylesheet" href="/assets/cvt-independent.css"><link rel="stylesheet" href="/assets/cvt-experience.css?v=real3"><link rel="stylesheet" href="/assets/cvt-product-studio.css?v=5"><link rel="stylesheet" href="/assets/cvt-live-motion.css?v=4">  <!-- Meta Pixel Code -->
+  <script>
+  !function(f,b,e,v,n,t,s)
+  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+  n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];
+  s.parentNode.insertBefore(t,s)}(window, document,'script',
+  'https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', '1117198146781464');
+  fbq('track', 'PageView');
+  </script>
+  <!-- End Meta Pixel Code -->
+
+<style>
+.cvt-floating-actions {
+  position: fixed;
+  right: 20px;
+  bottom: 85px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 999;
+}
+.cvt-fab {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 13px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.22);
+  transition: transform 0.2s, box-shadow 0.2s;
+  text-decoration: none;
+}
+.cvt-fab:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+}
+.cvt-fab-phone {
+  background: linear-gradient(135deg, #e65100, #ff6d00);
+}
+.cvt-fab-zalo {
+  background: linear-gradient(135deg, #0068ff, #0091ff);
+}
+@media (max-width: 640px) {
+  .cvt-floating-actions {
+    right: 14px;
+    bottom: 75px;
+    gap: 10px;
+  }
+  .cvt-fab {
+    width: 44px;
+    height: 44px;
+    font-size: 11px;
+  }
+}
+</style>
+</head>
+
+<body>
+  <!-- Meta Pixel Code (noscript) -->
+  <noscript><img height="1" width="1" style="display:none"
+  src="https://www.facebook.com/tr?id=1117198146781464&ev=PageView&noscript=1"
+  /></noscript>
+  <!-- End Meta Pixel Code -->
+  <div id="root"></div>
+  <script>
+    const urlSearchParams = new URLSearchParams(window.location.search);
+    window.__LOCALE__ = urlSearchParams.get("language") || "en";
+
+    window.__ERROR_DATA__ = {
+      errorCode: "404-NotBranded",
+      exceptionName: '',
+      data: {},
+      brand: urlSearchParams.get("brand") || '',
+      requestId: ''
+    };
+    </script>
+
+  <script src="https://static.parastorage.com/services/classic-error-pages-statics/dist/app.bundle.min.js"></script>
+<script src="/assets/cvt-independent.js" defer></script><script src="/assets/cvt-experience.js?v=real3" defer></script><script src="/assets/cvt-product-studio.js?v=5" defer></script><script src="/assets/cvt-live-motion.js?v=4" defer></script></body>
+
+</html>

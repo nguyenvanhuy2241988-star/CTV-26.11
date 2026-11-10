@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Đăng ký yêu cầu hợp tác | CVT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/brand.css">
+  <link rel="stylesheet" href="/assets/cvt-enquiry.css">
+  <style>
+    :root {
+      --ink: #183e2b;
+      --cream: #fffdf5;
+      --green: #215b38;
+      --line: #183e2b2a;
+      --purple: #7254a3;
+    }
+    body {
+      margin: 0;
+      padding: 12px;
+      background: transparent;
+      font-family: 'Be Vietnam Pro', sans-serif;
+      color: #174b30;
+      -webkit-font-smoothing: antialiased;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    .embedded-enquiry {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .form-grid label {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #174b30;
+    }
+    .form-grid input,
+    .form-grid select,
+    .form-grid textarea {
+      width: 100%;
+      border: 1px solid #bdcdb7;
+      border-radius: 10px;
+      background: #fffef9;
+      color: #174b30;
+      font: inherit;
+      font-size: 14px;
+      padding: 12px;
+      min-height: 46px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .form-grid input:focus,
+    .form-grid select:focus,
+    .form-grid textarea:focus {
+      border-color: #215b38;
+      box-shadow: 0 0 0 3px rgba(33, 91, 56, 0.15);
+    }
+    .form-wide {
+      grid-column: 1 / -1;
+    }
+    .honeypot {
+      display: none !important;
+      position: absolute;
+      left: -9999px;
+    }
+    .consent {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 12px;
+      line-height: 1.6;
+      margin-top: 14px;
+      color: #3b5344;
+      cursor: pointer;
+    }
+    .consent input {
+      margin-top: 3px;
+      accent-color: #174b30;
+      width: 16px;
+      height: 16px;
+      shrink: 0;
+    }
+    .form-error {
+      color: #a52b23;
+      font-size: 13px;
+      font-weight: 600;
+      margin: 10px 0 0;
+      min-height: 20px;
+    }
+    .submit-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 16px 28px;
+      border: none;
+      border-radius: 99px;
+      background: #174b30;
+      color: #fffdf5;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.2s, background 0.2s;
+      margin-top: 14px;
+      width: 100%;
+    }
+    .submit-btn:hover:not(:disabled) {
+      background: #286140;
+      transform: translateY(-2px);
+    }
+    .submit-btn:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+    .fine-print {
+      font-size: 11px;
+      line-height: 1.6;
+      color: #5d705e;
+      margin-top: 14px;
+      text-align: center;
+    }
+    .fine-print a {
+      color: inherit;
+      text-decoration: underline;
+    }
+    .form-success {
+      background: #eef7ed;
+      border: 1px solid #c2e2be;
+      border-radius: 18px;
+      padding: 32px 24px;
+      text-align: center;
+      animation: fadeIn 0.3s ease;
+    }
+    .form-success h3 {
+      font-size: 22px;
+      color: #174b30;
+      margin: 12px 0 8px;
+    }
+    .form-success p {
+      font-size: 14px;
+      line-height: 1.7;
+      color: #2f563d;
+      margin: 0 0 16px;
+    }
+    .form-success .code-badge {
+      display: inline-block;
+      background: #ffffff;
+      border: 1px dashed #215b38;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 15px;
+      font-weight: 700;
+      color: #174b30;
+      margin-bottom: 20px;
+    }
+    .btn-new {
+      display: inline-flex;
+      padding: 12px 24px;
+      border-radius: 99px;
+      background: #174b30;
+      color: white;
+      font-size: 13px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @media (max-width: 600px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="embedded-enquiry" id="app-container">
+    <div id="success-box" class="form-success" style="display: none;">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#215b38" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+      </svg>
+      <h3>Đã ghi nhận yêu cầu hợp tác!</h3>
+      <p>Cảm ơn Quý đối tác. Thông tin đã được lưu vào hệ thống CVT để LYHU chủ động liên hệ trao đổi phương án.</p>
+      <div><span class="code-badge" id="req-code">CVT-XXXXXXXX</span></div>
+      <div>
+        <button type="button" class="btn-new" onclick="resetForm()">Tạo yêu cầu mới ↗</button>
+      </div>
+    </div>
+
+    <form id="enquiry-form" onsubmit="submitForm(event)">
+      <input type="hidden" name="requestKey" id="requestKey" value="">
+      
+      <div class="form-grid">
+        <label>
+          Nhóm đối tác *
+          <select name="audience" id="audience" required onchange="handleAudienceChange()">
+            <option value="">Chọn mô hình hợp tác</option>
+            <option value="Nhà phân phối">Nhà phân phối</option>
+            <option value="Siêu thị & chuỗi bán lẻ">Siêu thị & chuỗi bán lẻ</option>
+            <option value="Khách sỉ & cửa hàng">Khách sỉ & cửa hàng</option>
+          </select>
+        </label>
+
+        <label>
+          Nhu cầu của bạn *
+          <select name="purpose" id="purpose" required>
+            <option value="">Chọn nội dung trao đổi</option>
+            <option value="Danh mục & báo giá">Danh mục & báo giá</option>
+            <option value="Mẫu thử & hồ sơ sản phẩm">Mẫu thử & hồ sơ sản phẩm</option>
+            <option value="Tư vấn hợp tác">Tư vấn hợp tác</option>
+          </select>
+        </label>
+
+        <label>
+          Tên đơn vị / cửa hàng *
+          <input name="company" id="company" required maxlength="180" placeholder="Công ty / Chuỗi / Cửa hàng" autocomplete="organization">
+        </label>
+
+        <label>
+          Người liên hệ *
+          <input name="name" id="name" required maxlength="120" placeholder="Họ và tên" autocomplete="name">
+        </label>
+
+        <label>
+          Số điện thoại (Zalo) *
+          <input name="phone" id="phone" type="tel" required maxlength="25" placeholder="Ví dụ: 0969 069 798" autocomplete="tel">
+        </label>
+
+        <label>
+          Email
+          <input name="email" id="email" type="email" maxlength="180" placeholder="diachi@email.com" autocomplete="email">
+        </label>
+
+        <label class="form-wide">
+          <span id="region-label">Khu vực hoạt động *</span>
+          <input name="region" id="region" required maxlength="180" placeholder="Tỉnh / Thành phố / Quận huyện hoạt động">
+        </label>
+
+        <label class="form-wide">
+          Hương vị / trọng lượng quan tâm
+          <input name="sku" id="sku" maxlength="300" placeholder="Ví dụ: Trứng cua 75g, Trứng muối 75g, Cay Tứ Xuyên 180g">
+        </label>
+
+        <label class="form-wide">
+          <span id="note-label">Thông tin thêm</span>
+          <textarea name="note" id="note" rows="3" maxlength="2000" placeholder="Lượng nhập dự kiến, hồ sơ cần xét, hoặc câu hỏi trao đổi"></textarea>
+        </label>
+      </div>
+
+      <!-- Honeypot -->
+      <label class="honeypot" aria-hidden="true">
+        Website
+        <input name="website" id="website" tabindex="-1" autocomplete="off">
+      </label>
+
+      <!-- Consent -->
+      <label class="consent">
+        <input type="checkbox" name="consent" id="consent" required checked>
+        <span>Tôi đồng ý để LYHU sử dụng thông tin này nhằm liên hệ xử lý yêu cầu hợp tác. Không đồng nghĩa đăng ký nhận quảng cáo.</span>
+      </label>
+
+      <div class="form-error" id="form-error" role="alert"></div>
+
+      <button type="submit" class="submit-btn" id="submit-btn">
+        <span>Gửi yêu cầu hợp tác ↗</span>
+      </button>
+
+      <p class="fine-print">
+        Thông tin được tiếp nhận và lưu trực tiếp trên website CVT. Xem <a href="/quyen-rieng-tu.html" target="_parent">Quyền riêng tư</a>.<br>
+        Mẫu thử, báo giá và điều kiện hợp tác được xác nhận riêng sau khi trao đổi.
+      </p>
+    </form>
+  </div>
+
+  <script>
+    function genKey() {
+      return 'CVT-' + Math.random().toString(36).substring(2, 10).toUpperCase() + '-' + Date.now().toString(36);
+    }
+
+    function initForm() {
+      document.getElementById('requestKey').value = genKey();
+      
+      // Parse URL parameters
+      try {
+        var params = new URLSearchParams(window.location.search);
+        var nhom = params.get('nhom');
+        var mapNhom = {
+          'npp': 'Nhà phân phối',
+          'retail': 'Siêu thị & chuỗi bán lẻ',
+          'wholesale': 'Khách sỉ & cửa hàng'
+        };
+        if (nhom && mapNhom[nhom]) {
+          document.getElementById('audience').value = mapNhom[nhom];
+        }
+
+        var yc = params.get('yeu-cau');
+        var mapYc = {
+          'docs': 'Mẫu thử & hồ sơ sản phẩm',
+          'quote': 'Danh mục & báo giá',
+          'catalog': 'Mẫu thử & hồ sơ sản phẩm'
+        };
+        if (yc && mapYc[yc]) {
+          document.getElementById('purpose').value = mapYc[yc];
+        }
+      } catch (e) {}
+
+      handleAudienceChange();
+      notifyHeight();
+    }
+
+    function handleAudienceChange() {
+      var aud = document.getElementById('audience').value;
+      var regionLabel = document.getElementById('region-label');
+      var noteLabel = document.getElementById('note-label');
+      
+      if (aud === 'Nhà phân phối') {
+        regionLabel.textContent = 'Khu vực & mạng lưới điểm bán *';
+        noteLabel.textContent = 'Lượng nhập dự kiến, kênh bán, nhu cầu giao nhận';
+      } else if (aud === 'Siêu thị & chuỗi bán lẻ') {
+        regionLabel.textContent = 'Hệ thống / khu vực triển khai *';
+        noteLabel.textContent = 'Hồ sơ cần xét, mẫu thử, yêu cầu trưng bày';
+      } else {
+        regionLabel.textContent = 'Khu vực hoạt động *';
+        noteLabel.textContent = 'Thông tin thêm về cửa hàng / nhu cầu nhập';
+      }
+      notifyHeight();
+    }
+
+    function notifyHeight() {
+      if (window.parent && window.parent !== window) {
+        var container = document.getElementById('app-container');
+        var h = Math.ceil(container ? container.scrollHeight : document.body.scrollHeight) + 30;
+        window.parent.postMessage({ type: 'cvt-form-height', height: h }, '*');
+      }
+    }
+
+    async function submitForm(e) {
+      e.preventDefault();
+      var errEl = document.getElementById('form-error');
+      var btn = document.getElementById('submit-btn');
+      errEl.textContent = '';
+
+      var form = document.getElementById('enquiry-form');
+      if (!form.reportValidity()) return;
+
+      var consent = document.getElementById('consent').checked;
+      if (!consent) {
+        errEl.textContent = 'Vui lòng xác nhận đồng ý để LYHU liên hệ xử lý yêu cầu.';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<span>Đang gửi yêu cầu...</span>';
+
+      var payload = {
+        audience: document.getElementById('audience').value,
+        purpose: document.getElementById('purpose').value,
+        company: document.getElementById('company').value.trim(),
+        name: document.getElementById('name').value.trim(),
+        phone: document.getElementById('phone').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        region: document.getElementById('region').value.trim(),
+        sku: document.getElementById('sku').value.trim(),
+        note: document.getElementById('note').value.trim(),
+        website: document.getElementById('website').value.trim(),
+        consent: consent,
+        requestKey: document.getElementById('requestKey').value
+      };
+
+      try {
+        var res = await fetch('/api/requests', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        var data = await res.json();
+        if (res.ok && data.ok) {
+          document.getElementById('enquiry-form').style.display = 'none';
+          document.getElementById('success-box').style.display = 'block';
+          document.getElementById('req-code').textContent = data.id || payload.requestKey;
+          notifyHeight();
+        } else {
+          errEl.textContent = data.error || 'Chưa gửi được yêu cầu. Vui lòng liên hệ Hotline 0969 069 798.';
+          btn.disabled = false;
+          btn.innerHTML = '<span>Gửi yêu cầu hợp tác ↗</span>';
+        }
+      } catch (err) {
+        errEl.textContent = 'Không kết nối được máy chủ. Vui lòng thử lại hoặc gọi Hotline 0969 069 798.';
+        btn.disabled = false;
+        btn.innerHTML = '<span>Gửi yêu cầu hợp tác ↗</span>';
+      }
+    }
+
+    function resetForm() {
+      document.getElementById('enquiry-form').reset();
+      document.getElementById('enquiry-form').style.display = 'block';
+      document.getElementById('success-box').style.display = 'none';
+      document.getElementById('form-error').textContent = '';
+      var btn = document.getElementById('submit-btn');
+      btn.disabled = false;
+      btn.innerHTML = '<span>Gửi yêu cầu hợp tác ↗</span>';
+      document.getElementById('requestKey').value = genKey();
+      notifyHeight();
+    }
+
+    window.addEventListener('DOMContentLoaded', initForm);
+    window.addEventListener('resize', notifyHeight);
+  </script>
+</body>
+</html>

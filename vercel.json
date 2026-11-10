@@ -1,0 +1,56 @@
+{
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "headers": [
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/images/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/videos/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    { "source": "/dang-ky", "destination": "/dang-ky.html" },
+    { "source": "/quan-tri", "destination": "/quan-tri.html" },
+    { "source": "/san-pham", "destination": "/san-pham.html" },
+    { "source": "/ve-cvt", "destination": "/ve-cvt.html" },
+    { "source": "/chat-luong", "destination": "/chat-luong.html" },
+    { "source": "/hop-tac", "destination": "/hop-tac.html" },
+    { "source": "/goc-cvt", "destination": "/goc-cvt.html" },
+    { "source": "/noi-mua", "destination": "/noi-mua.html" },
+    { "source": "/lien-he", "destination": "/lien-he.html" },
+    { "source": "/hoi-dap", "destination": "/hoi-dap.html" },
+    { "source": "/yeu-cau-hop-tac", "destination": "/yeu-cau-hop-tac.html" },
+    { "source": "/trung-cua", "destination": "/trung-cua.html" },
+    { "source": "/trung-muoi", "destination": "/trung-muoi.html" },
+    { "source": "/cay-tu-xuyen", "destination": "/cay-tu-xuyen.html" },
+    { "source": "/hanh-la", "destination": "/hanh-la.html" },
+    { "source": "/nam", "destination": "/nam.html" },
+    { "source": "/ba-cach-mo-cuoc-vui", "destination": "/ba-cach-mo-cuoc-vui.html" },
+    { "source": "/chon-goi-khoai-mon", "destination": "/chon-goi-khoai-mon.html" },
+    { "source": "/giu-khoai-mon-gion", "destination": "/giu-khoai-mon-gion.html" },
+    { "source": "/huong-dan-mua-hang", "destination": "/huong-dan-mua-hang.html" },
+    { "source": "/quyen-rieng-tu", "destination": "/quyen-rieng-tu.html" }
+  ]
+}
