@@ -1,5 +1,5 @@
 import { checkAdminAuth } from './_auth.js';
-import { listRequests, updateRequestStatus, listEntries, saveEntry } from '../_db.js';
+import { isDbConfigured, listRequests, updateRequestStatus, listEntries, saveEntry } from '../_db.js';
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
@@ -11,6 +11,13 @@ export default async function handler(req, res) {
 
   // GET: load leads and content
   if (req.method === 'GET') {
+    if (!isDbConfigured()) {
+      return res.status(503).json({
+        error: 'database_unavailable',
+        message: 'Cơ sở dữ liệu chưa được kết nối. Vui lòng cấu hình biến SUPABASE_URL và SUPABASE_SERVICE_ROLE_KEY trên Vercel.'
+      });
+    }
+
     try {
       const requests = await listRequests(200);
       const entries = await listEntries();
@@ -38,27 +45,35 @@ export default async function handler(req, res) {
         }
       });
     } catch (err) {
-      return res.status(500).json({ error: 'Không tải được dữ liệu quản trị.' });
+      console.error('Admin GET error:', err);
+      return res.status(500).json({ error: 'database_error', message: 'Không thể truy vấn dữ liệu từ cơ sở dữ liệu.' });
     }
   }
 
   // POST: status change or CMS entry save
   if (req.method === 'POST') {
+    if (!isDbConfigured()) {
+      return res.status(503).json({
+        error: 'database_unavailable',
+        message: 'Cơ sở dữ liệu chưa được kết nối. Không thể thực hiện lưu trữ.'
+      });
+    }
+
     try {
       const b = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
 
       // 1. Update lead status
       if (b.action === 'status') {
         if (!['new', 'contacted', 'closed'].includes(b.status)) {
-          return res.status(400).json({ error: 'Trạng thái không hợp lệ.' });
+          return res.status(400).json({ error: 'invalid_status', message: 'Trạng thái không hợp lệ.' });
         }
         await updateRequestStatus(b.id, b.status);
-        return res.status(200).json({ ok: true });
+        return res.status(200).json({ ok: true, message: 'Đã cập nhật trạng thái.' });
       }
 
       // 2. Save CMS entry
       if (!['products', 'posts', 'docs', 'outlets'].includes(b.kind) || !b.id) {
-        return res.status(400).json({ error: 'Thông tin nội dung không hợp lệ.' });
+        return res.status(400).json({ error: 'invalid_data', message: 'Thông tin nội dung không hợp lệ.' });
       }
 
       await saveEntry({
@@ -68,11 +83,12 @@ export default async function handler(req, res) {
         published: b.published ? 1 : 0
       });
 
-      return res.status(200).json({ ok: true });
+      return res.status(200).json({ ok: true, message: 'Đã lưu nội dung thành công.' });
     } catch (err) {
-      return res.status(500).json({ error: 'Chưa lưu được nội dung.' });
+      console.error('Admin POST error:', err);
+      return res.status(500).json({ error: 'save_failed', message: 'Không thể lưu vào cơ sở dữ liệu.' });
     }
   }
 
-  return res.status(405).json({ error: 'Method not allowed' });
+  return res.status(405).json({ error: 'method_not_allowed' });
 }

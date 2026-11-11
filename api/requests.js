@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { findRequestByKey, insertRequest } from './_db.js';
+import { isDbConfigured, findRequestByKey, insertRequest } from './_db.js';
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
@@ -11,22 +11,22 @@ export default async function handler(req, res) {
   try {
     const raw = typeof req.body === 'string' ? req.body : JSON.stringify(req.body || {});
     if (raw.length > 15000) {
-      return res.status(413).json({ error: 'Nội dung yêu cầu quá dài.' });
+      return res.status(413).json({ error: 'payload_too_large', message: 'Nội dung yêu cầu quá dài.' });
     }
 
     const b = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
 
-    // 1. Honeypot anti-bot check
+    // 1. Anti-spam honeypot check
     if (b.website) {
-      return res.status(400).json({ error: 'Yêu cầu không hợp lệ.' });
+      return res.status(400).json({ error: 'invalid_submission', message: 'Yêu cầu không hợp lệ.' });
     }
 
     // 2. Consent check
     if (b.consent !== true) {
-      return res.status(400).json({ error: 'Vui lòng xác nhận đồng ý để LYHU liên hệ xử lý yêu cầu.' });
+      return res.status(400).json({ error: 'consent_required', message: 'Vui lòng xác nhận đồng ý để LYHU liên hệ xử lý yêu cầu.' });
     }
 
-    // 3. Extract & sanitize fields
+    // 3. Field extraction & validation
     const text = (k, max = 300) => typeof b[k] === 'string' ? b[k].trim().slice(0, max) : '';
     const audience = text('audience', 100);
     const purpose = text('purpose', 100);
@@ -41,31 +41,46 @@ export default async function handler(req, res) {
 
     const validAudiences = ['Nhà phân phối', 'Siêu thị & chuỗi bán lẻ', 'Khách sỉ & cửa hàng'];
     if (!validAudiences.includes(audience)) {
-      return res.status(400).json({ error: 'Vui lòng chọn mô hình hợp tác hợp lệ.' });
+      return res.status(400).json({ error: 'invalid_audience', message: 'Vui lòng chọn mô hình hợp tác hợp lệ.' });
     }
 
     if (!name || !company || !region || !purpose || !key) {
-      return res.status(400).json({ error: 'Vui lòng điền đầy đủ các thông tin bắt buộc (*).' });
+      return res.status(400).json({ error: 'missing_fields', message: 'Vui lòng điền đầy đủ các thông tin bắt buộc (*).' });
     }
 
     if (!/^\+?[\d\s().-]{8,25}$/.test(phone)) {
-      return res.status(400).json({ error: 'Số điện thoại không đúng định dạng.' });
+      return res.status(400).json({ error: 'invalid_phone', message: 'Số điện thoại không đúng định dạng.' });
     }
 
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({ error: 'Vui lòng kiểm tra lại địa chỉ email.' });
+      return res.status(400).json({ error: 'invalid_email', message: 'Vui lòng kiểm tra lại địa chỉ email.' });
     }
 
-    // 4. Idempotency Check: Don't insert duplicate if key was already processed
+    // 4. Verify Persistent Database Availability
+    // Critical: NEVER fall back to temporary memory on serverless to prevent data loss!
+    if (!isDbConfigured()) {
+      return res.status(503).json({
+        error: 'database_unavailable',
+        message: 'Hệ thống lưu trữ dữ liệu CVT đang bảo trì cấu hình. Vui lòng liên hệ Hotline/Zalo 0969 069 798 để gửi thông tin trực tiếp.'
+      });
+    }
+
+    // 5. Pre-check idempotency: Check if key was already submitted
     const existing = await findRequestByKey(key);
     if (existing) {
-      return res.status(200).json({ ok: true, id: existing.id, duplicate: true });
+      return res.status(200).json({
+        ok: true,
+        id: existing.id,
+        status: existing.status,
+        duplicate: true,
+        message: 'Yêu cầu hợp tác này đã được tiếp nhận trước đó.'
+      });
     }
 
-    // 5. Generate clean ID and save
-    const id = `CVT-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+    // 6. Generate candidate ID and save to database
+    const candidateId = `CVT-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
     const newRecord = {
-      id,
+      id: candidateId,
       requestKey: key,
       audience,
       purpose,
@@ -81,11 +96,29 @@ export default async function handler(req, res) {
       createdAt: new Date().toISOString()
     };
 
-    await insertRequest(newRecord);
-
-    // 6. Asynchronous email alert to LYHU sales team (FormSubmit)
+    let savedRecord;
     try {
-      fetch('https://formsubmit.co/ajax/lyhu.vn@gmail.com', {
+      savedRecord = await insertRequest(newRecord);
+    } catch (dbErr) {
+      console.error('Database write failed:', dbErr);
+      return res.status(503).json({
+        error: 'save_failed',
+        message: 'Chưa thể lưu thông tin vào cơ sở dữ liệu. Vui lòng liên hệ Hotline 0969 069 798 để tránh thất lạc yêu cầu.'
+      });
+    }
+
+    // The canonical ID is the ID actually committed to the DB
+    const finalId = savedRecord.id || candidateId;
+    const isDuplicate = !!savedRecord.duplicate;
+
+    // 7. Verified email notification (FormSubmit)
+    // Await with timeout to guarantee delivery confirmation without blocking indefinitely
+    let emailStatus = 'pending';
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+      const emailRes = await fetch('https://formsubmit.co/ajax/lyhu.vn@gmail.com', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -93,7 +126,7 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify({
           _subject: `🔥 [CVT Web] Yêu Cầu Hợp Tác: ${company} - ${audience} (${phone})`,
-          'Mã yêu cầu': id,
+          'Mã yêu cầu': finalId,
           'Mô hình': audience,
           'Nhu cầu': purpose,
           'Đơn vị': company,
@@ -105,18 +138,37 @@ export default async function handler(req, res) {
           'Ghi chú': note || 'Không có',
           'Thời gian': new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
           _template: 'table'
-        })
-      }).catch(e => console.warn('FormSubmit notification error (non-fatal):', e));
-    } catch (e) {
-      // non-fatal
+        }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (emailRes.ok) {
+        emailStatus = 'delivered';
+      } else {
+        const errText = await emailRes.text();
+        emailStatus = `failed_${emailRes.status}`;
+        console.warn('FormSubmit email service error:', emailRes.status, errText);
+      }
+    } catch (mailErr) {
+      emailStatus = 'network_timeout';
+      console.warn('FormSubmit email notice warning (non-fatal):', mailErr.message);
     }
 
-    return res.status(201).json({ ok: true, id });
+    return res.status(isDuplicate ? 200 : 201).json({
+      ok: true,
+      id: finalId,
+      duplicate: isDuplicate,
+      emailStatus: emailStatus,
+      message: 'Đã tiếp nhận yêu cầu hợp tác thành công!'
+    });
 
   } catch (err) {
-    console.error('Request handling error:', err);
+    console.error('Unhandled request processing error:', err);
     return res.status(500).json({
-      error: 'Chưa gửi được yêu cầu. Vui lòng thử lại hoặc gọi Hotline 0969 069 798.'
+      error: 'server_error',
+      message: 'Có lỗi xảy ra khi xử lý yêu cầu. Vui lòng liên hệ Hotline 0969 069 798 để được hỗ trợ.'
     });
   }
 }
