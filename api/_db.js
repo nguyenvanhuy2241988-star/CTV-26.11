@@ -239,7 +239,9 @@ export async function checkAtomicLoginRateLimit(ip) {
   const rows = await res.json();
   const result = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
   if (!result) {
-    return { allowed: true, attempts: 0, remainingSec: 0 };
+    // FAIL-CLOSED: Empty result from RPC indicates DB error or invalid response format.
+    // Strictly throw to trigger HTTP 503 instead of erroneously allowing bypass!
+    throw new Error('DATABASE_RPC_EMPTY_RESPONSE: cvt_check_login_rate_limit returned no rows');
   }
 
   return {
@@ -276,7 +278,9 @@ export async function recordAtomicFailedLogin(ip) {
   const rows = await res.json();
   const result = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
   if (!result) {
-    return { allowed: true, attempts: 1, remainingSec: 0 };
+    // FAIL-CLOSED: Empty result from RPC indicates DB error or invalid response format.
+    // Strictly throw to trigger HTTP 503 instead of erroneously allowing bypass!
+    throw new Error('DATABASE_RPC_EMPTY_RESPONSE: cvt_record_login_failure returned no rows');
   }
 
   return {

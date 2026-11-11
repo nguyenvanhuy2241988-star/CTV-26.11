@@ -22,6 +22,8 @@ class MockSupabaseService {
     this.adminAttemptsTable = new Map();
     this.entriesTable = new Map();
     this.emailCalls = [];
+    this.simulateRpcEmpty = false;
+    this.simulateEmptyEmailJson = false;
   }
 
   fetchHandler = async (url, options = {}) => {
@@ -32,6 +34,14 @@ class MockSupabaseService {
     // FormSubmit mock
     if (urlStr.includes('formsubmit.co')) {
       this.emailCalls.push({ url: urlStr, body });
+      if (this.simulateEmptyEmailJson) {
+        return {
+          ok: true,
+          status: 200,
+          text: async () => '',
+          json: async () => null
+        };
+      }
       return {
         ok: true,
         status: 200,
@@ -84,6 +94,9 @@ class MockSupabaseService {
 
     // 2. Atomic RPC cvt_check_login_rate_limit
     if (urlStr.includes('/rest/v1/rpc/cvt_check_login_rate_limit')) {
+      if (this.simulateRpcEmpty) {
+        return { ok: true, status: 200, json: async () => [] };
+      }
       const ip = body.p_ip;
       const rec = this.adminAttemptsTable.get(ip);
       const now = Date.now();
@@ -96,21 +109,29 @@ class MockSupabaseService {
       return { ok: true, status: 200, json: async () => [{ allowed: true, current_attempts: rec.attempts, remaining_seconds: 0 }] };
     }
 
-    // 3. Atomic RPC cvt_record_login_failure (Simulates PostgreSQL SELECT ... FOR UPDATE)
+    // 3. Atomic RPC cvt_record_login_failure (Simulates PostgreSQL ON CONFLICT & SELECT ... FOR UPDATE)
     if (urlStr.includes('/rest/v1/rpc/cvt_record_login_failure')) {
+      if (this.simulateRpcEmpty) {
+        return { ok: true, status: 200, json: async () => [] };
+      }
       const ip = body.p_ip;
       const maxAttempts = body.p_max_attempts || 5;
       const now = Date.now();
-      const rec = this.adminAttemptsTable.get(ip);
+      let rec = this.adminAttemptsTable.get(ip);
 
+      // Simulates INSERT ... ON CONFLICT (ip) DO NOTHING;
       if (!rec) {
-        const newRec = { ip, attempts: 1, first_attempt: now, locked_until: null };
-        this.adminAttemptsTable.set(ip, newRec);
-        return { ok: true, status: 200, json: async () => [{ allowed: true, current_attempts: 1, remaining_seconds: 0 }] };
+        rec = { ip, attempts: 0, first_attempt: now, locked_until: null };
+        this.adminAttemptsTable.set(ip, rec);
       }
 
-      // Check if 15-minute window expired -> reset to 1
-      if (now - rec.first_attempt > 15 * 60 * 1000) {
+      // Check if locked
+      if (rec.locked_until && rec.locked_until > now) {
+        return { ok: true, status: 200, json: async () => [{ allowed: false, current_attempts: rec.attempts, remaining_seconds: Math.ceil((rec.locked_until - now) / 1000) }] };
+      }
+
+      // Check if 15-minute window expired or attempts == 0 -> reset to 1
+      if (rec.attempts === 0 || (now - rec.first_attempt > 15 * 60 * 1000)) {
         rec.attempts = 1;
         rec.first_attempt = now;
         rec.locked_until = null;
@@ -292,6 +313,37 @@ async function runUnitLogicTests() {
   assert.strictEqual(rClean.statusCode, 200);
   assert.ok(rClean.headers['Set-Cookie'].includes('cvt_admin_session='));
   console.log('  -> PASS: Đăng nhập thành công từ IP sạch, cấp token phiên an toàn!\n');
+
+  // TEST 5: Fail-Closed on Empty RPC Result
+  console.log('[TEST 5] Fail-Closed khi RPC trả về dữ liệu rỗng:');
+  service.simulateRpcEmpty = true;
+  const rRpcEmpty = mockRes();
+  await handlerLogin({
+    method: 'POST',
+    headers: { 'x-forwarded-for': '10.0.0.99' },
+    body: { password: 'WrongPassword' }
+  }, rRpcEmpty);
+  assert.strictEqual(rRpcEmpty.statusCode, 503, 'RPC trả rỗng phải kích hoạt 503 fail-closed');
+  assert.strictEqual(rRpcEmpty.data.error, 'database_unavailable');
+  service.simulateRpcEmpty = false;
+  console.log('  -> PASS: RPC trả mảng rỗng bị chặn ngay với HTTP 503, không ngộ nhận cho phép (fail-closed)!\n');
+
+  // TEST 6: Unconfirmed Email Status on Empty/Malformed JSON
+  console.log('[TEST 6] Trạng thái email khi gateway trả JSON rỗng/không chuẩn:');
+  service.simulateEmptyEmailJson = true;
+  const resBadMailJson = mockRes();
+  await handlerRequests({
+    method: 'POST',
+    body: {
+      audience: 'Nhà phân phối', purpose: 'Báo giá',
+      company: 'NPP Test JSON', name: 'Nguyễn Văn A', phone: '0912345678',
+      region: 'Hà Nội', consent: true, requestKey: 'KEY-TEST-BAD-JSON'
+    }
+  }, resBadMailJson);
+  assert.strictEqual(resBadMailJson.statusCode, 201);
+  assert.strictEqual(resBadMailJson.data.emailDispatch, 'gateway_unconfirmed', 'JSON rỗng phải trả gateway_unconfirmed, không được ngộ nhận gateway_accepted');
+  service.simulateEmptyEmailJson = false;
+  console.log('  -> PASS: JSON rỗng/không hợp lệ từ cổng email trả về đúng nhãn gateway_unconfirmed!\n');
 
   console.log('====================================================================');
   console.log('TẤT CẢ CÁC BÀI TEST LOGIC & NGUYÊN TỬ ĐÃ PASS 100%');

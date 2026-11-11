@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS cvt_admin_attempts (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 4. Hàm RPC: Kiểm tra Rate Limit Đăng nhập
+-- 4. Hàm RPC: Kiểm tra Rate Limit Đăng nhập (Fail-Closed, search_path cố định)
 CREATE OR REPLACE FUNCTION cvt_check_login_rate_limit(
   p_ip TEXT,
   p_window_interval INTERVAL DEFAULT INTERVAL '15 minutes'
@@ -79,6 +79,7 @@ RETURNS TABLE (
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public, pg_temp
 AS $$
 DECLARE
   v_rec cvt_admin_attempts%ROWTYPE;
@@ -101,7 +102,7 @@ BEGIN
 END;
 $$;
 
--- 5. Hàm RPC: Tăng bộ đếm thử sai nguyên tử (Atomic Counter with Row-Level Lock)
+-- 5. Hàm RPC: Tăng bộ đếm thử sai nguyên tử (Atomic Counter with ON CONFLICT & Row-Level Lock)
 CREATE OR REPLACE FUNCTION cvt_record_login_failure(
   p_ip TEXT,
   p_max_attempts INT DEFAULT 5,
@@ -116,6 +117,7 @@ RETURNS TABLE (
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public, pg_temp
 AS $$
 DECLARE
   v_rec cvt_admin_attempts%ROWTYPE;
@@ -123,24 +125,25 @@ DECLARE
   v_new_attempts INT;
   v_locked_until TIMESTAMP WITH TIME ZONE := NULL;
 BEGIN
+  -- Bước 1: Khởi tạo dòng một cách an toàn bằng ON CONFLICT DO NOTHING.
+  -- Nếu 2 request chạy đồng thời cho 1 IP chưa từng có trong DB, cả hai đều an toàn và không gây lỗi duplicate key!
+  INSERT INTO cvt_admin_attempts (ip, attempts, first_attempt, locked_until, updated_at)
+  VALUES (p_ip, 0, v_now, NULL, v_now)
+  ON CONFLICT (ip) DO NOTHING;
+
+  -- Bước 2: Khóa dòng bằng FOR UPDATE để tuần tự hóa giao dịch tuyệt đối
   SELECT * INTO v_rec FROM cvt_admin_attempts WHERE ip = p_ip FOR UPDATE;
 
-  IF NOT FOUND THEN
-    INSERT INTO cvt_admin_attempts (ip, attempts, first_attempt, locked_until, updated_at)
-    VALUES (p_ip, 1, v_now, NULL, v_now);
-    
-    RETURN QUERY SELECT TRUE, 1, NULL::TIMESTAMP WITH TIME ZONE, 0;
-    RETURN;
-  END IF;
-
+  -- Nếu đang trong thời gian bị khóa:
   IF v_rec.locked_until IS NOT NULL AND v_rec.locked_until > v_now THEN
     RETURN QUERY SELECT FALSE, v_rec.attempts, v_rec.locked_until, 
       CEIL(EXTRACT(EPOCH FROM (v_rec.locked_until - v_now)))::INT;
     RETURN;
   END IF;
 
-  -- Nếu đã quá cửa sổ 15 phút, reset attempts về 1
-  IF v_now - v_rec.first_attempt > p_window_interval THEN
+  -- Nếu là bản ghi mới (attempts = 0) hoặc đã hết hạn cửa sổ window 15 phút: reset về 1
+  IF v_rec.attempts = 0 OR (v_now - v_rec.first_attempt > p_window_interval) THEN
+    v_new_attempts := 1;
     UPDATE cvt_admin_attempts
     SET attempts = 1,
         first_attempt = v_now,
@@ -152,6 +155,7 @@ BEGIN
     RETURN;
   END IF;
 
+  -- Trường hợp đang trong cửa sổ 15 phút: tăng attempts
   v_new_attempts := v_rec.attempts + 1;
   IF v_new_attempts >= p_max_attempts THEN
     v_locked_until := v_now + p_lockout_interval;
@@ -171,4 +175,27 @@ BEGIN
   END IF;
 END;
 $$;
+
+-- 6. Bảo mật RLS và phân quyền nghiêm ngặt cho vai trò máy chủ (service_role)
+-- Kích hoạt RLS cho toàn bộ các bảng dữ liệu
+ALTER TABLE cvt_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE cvt_entries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE cvt_admin_attempts ENABLE ROW LEVEL SECURITY;
+
+-- Thu hồi toàn bộ quyền từ PUBLIC, anon, authenticated (không cho phép truy cập trực tiếp từ client-side)
+REVOKE ALL ON cvt_requests FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON cvt_entries FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON cvt_admin_attempts FROM PUBLIC, anon, authenticated;
+
+-- Chỉ cấp quyền đầy đủ cho vai trò máy chủ (service_role) của backend
+GRANT ALL ON cvt_requests TO service_role;
+GRANT ALL ON cvt_entries TO service_role;
+GRANT ALL ON cvt_admin_attempts TO service_role;
+
+-- Phân quyền cho 2 hàm RPC: Thu hồi từ PUBLIC, cấp riêng cho service_role
+REVOKE ALL ON FUNCTION cvt_check_login_rate_limit(TEXT, INTERVAL) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION cvt_check_login_rate_limit(TEXT, INTERVAL) TO service_role;
+
+REVOKE ALL ON FUNCTION cvt_record_login_failure(TEXT, INT, INTERVAL, INTERVAL) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION cvt_record_login_failure(TEXT, INT, INTERVAL, INTERVAL) TO service_role;
 ```

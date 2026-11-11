@@ -172,7 +172,9 @@ export default async function handler(req, res) {
           emailStatus = `gateway_activation_required: ${json.message || 'Form needs email confirmation'}`;
           console.warn('FormSubmit activation/status warning:', json.message);
         } else {
-          emailStatus = 'gateway_accepted';
+          // If JSON is empty, missing, or unrecognized, label strictly as unconfirmed
+          emailStatus = 'gateway_unconfirmed';
+          console.warn('FormSubmit email status unconfirmed (empty or unrecognized JSON response)');
         }
       } else {
         const errText = await emailRes.text();
