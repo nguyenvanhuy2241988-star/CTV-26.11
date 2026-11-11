@@ -269,6 +269,30 @@ async function runUnitLogicTests() {
 
   // TEST 4: Atomic Rate Limiting via PostgreSQL RPC
   console.log('[TEST 4] Atomic Distributed Rate Limiting via PostgreSQL RPC:');
+
+  // 4A: Concurrent race on fresh IP -> Must serialize to EXACTLY attempts = 2
+  const raceIp = '203.113.152.99';
+  const rRaceA = mockRes();
+  const rRaceB = mockRes();
+  await Promise.all([
+    handlerLogin({
+      method: 'POST',
+      headers: { 'x-forwarded-for': raceIp },
+      body: { password: 'WrongPassword' }
+    }, rRaceA),
+    handlerLogin({
+      method: 'POST',
+      headers: { 'x-forwarded-for': raceIp },
+      body: { password: 'WrongPassword' }
+    }, rRaceB)
+  ]);
+  assert.strictEqual(rRaceA.statusCode, 401);
+  assert.strictEqual(rRaceB.statusCode, 401);
+  const raceRecord = service.adminAttemptsTable.get(raceIp);
+  assert.ok(raceRecord, 'Bản ghi IP phải tồn tại');
+  assert.strictEqual(raceRecord.attempts, 2, 'BẮT BUỘC: Bộ đếm cuối cùng phải bằng chính xác 2 sau 2 request đồng thời!');
+  console.log('  -> PASS: 2 request đăng nhập sai đồng thời trên IP mới được serialize chuẩn xác, bộ đếm cuối bằng đúng 2!');
+
   const ip = '203.113.152.1';
 
   // Attempts 1 to 4: return 401
