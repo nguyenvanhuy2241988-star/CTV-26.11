@@ -459,7 +459,7 @@
         if (res.ok && data.ok) {
           await loadData();
         } else {
-          msg.textContent = data.error || 'Mật khẩu quản trị không chính xác.';
+          msg.textContent = data.message || data.error || 'Mật khẩu quản trị không chính xác.';
           msg.style.display = 'block';
         }
       } catch (err) {
