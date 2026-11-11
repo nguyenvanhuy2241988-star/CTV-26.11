@@ -52,3 +52,41 @@ body.premium-home{background:#f7f4e9;color:#102d22}.premium-home .brand-header{b
 .youth-home{background:#fffbed;color:#075b38}.youth-home .brand-header{background:#fffbed;color:#075b38;border-bottom:1px solid #075b3815}.youth-home .brand-header .btn{border-radius:30px;background:#075b38;color:#fffbed;font-size:12px;letter-spacing:0}.youth-home .brand-nav{color:#075b38}.youth-home .menu-toggle{color:#075b38;border-color:#075b3830}.youth-home .home-cover{min-height:650px;background:#fff3b8;color:#075b38;padding:60px 6vw;overflow:hidden}.youth-home .home-cover>img{width:57%;left:auto;right:0;object-fit:cover;object-position:center}.youth-home .home-cover:after{background:linear-gradient(90deg,#fff3b8 0%,#fff3b8 39%,#fff3b8bb 45%,transparent 59%)}.youth-home .home-cover-copy{width:45%;max-width:610px;z-index:2}.youth-home .home-cover h1{font-size:clamp(55px,5.8vw,88px);letter-spacing:-3px;font-weight:900;line-height:1.12}.youth-home .home-cover h1 span{color:#075b38;background:#ffdc48;display:inline;box-decoration-break:clone;-webkit-box-decoration-break:clone;line-height:1.4}.youth-home .home-cover-copy .eyebrow{color:#075b38;font-size:10px}.youth-home .home-cover-copy p{color:#3e6345;font-size:14px;max-width:370px}.youth-home .home-cover .btn{background:#075b38;color:#fffbed;border-color:#075b38;border-radius:30px}.youth-home .home-cover .btn.outline{background:#fffbed;color:#075b38}.youth-home .home-cover .scroll-label{color:#3e6345}.youth-home .home-cover .image-credit{background:#fffbeddd;color:#426247;text-shadow:none;padding:5px 10px;border-radius:12px}.youth-home .marquee{background:#ffdc48;color:#075b38;font-size:19px}.youth-home .brand-home-about{background:#fffbed}.youth-home .brand-home-about .color-art{background:#dcecaa;border-radius:30px}.youth-home .copy h2{font-weight:800}.youth-home .youth-selector{background:#edf4d6;--tint:#ffd06a;--flavor:#8d591b;padding-top:0;transition:background .35s}.youth-home .youth-selector[data-theme=egg]{background:#fff4c4;--tint:#f5df67;--flavor:#81701b}.youth-home .youth-selector[data-theme=spicy]{background:#ffeadf;--tint:#e6a293;--flavor:#8e2e36}.youth-selector .p-section-intro{padding:65px 6vw 10px}.youth-selector .p-section-intro h2{font-size:clamp(36px,4.5vw,65px);font-weight:800;letter-spacing:-2px;line-height:1.2}.youth-selector .p-section-intro .p-kicker{display:block;font-size:10px;letter-spacing:1.8px;margin-bottom:22px}.youth-selector .p-config{padding:5px 6vw 35px;gap:5vw}.youth-selector .p-config-art{height:510px}.youth-selector .p-config-art img{height:420px}.youth-selector .p-config-ring{width:410px;height:410px;background:var(--tint);box-shadow:0 0 0 18px #ffffff50}.youth-selector .p-config-index{font-size:62px;color:#075b38;opacity:.25}.youth-selector .p-flavor-tabs{gap:12px;border:0;margin-bottom:30px;flex-wrap:wrap}.youth-selector .p-flavor-tabs button{padding:12px 18px;border:1px solid #075b3830;border-radius:30px;background:#fffbed;color:#075b38;font-weight:600;font-size:11px}.youth-selector .p-flavor-tabs button[aria-selected=true]{background:#075b38;color:#fffbed;border-color:#075b38}.youth-selector .p-flavor-note{font-size:9px;font-weight:700;letter-spacing:1px}.youth-selector .p-config-copy h3{font-size:clamp(43px,5vw,68px);font-weight:800;letter-spacing:-2px;margin:18px 0}.youth-selector .p-config-copy p{font-size:14px;color:#426247;line-height:1.9}.youth-selector .p-config-copy .p-spec{font-size:9px;margin:25px 0}.youth-selector .p-link{display:inline-flex;align-items:center;gap:25px;border:0;background:#075b38;color:#fffbed;padding:17px 25px;border-radius:30px;font-size:11px;font-weight:700;letter-spacing:0}.youth-selector .p-link span{font-size:20px}.youth-selector .p-text-button{font-size:11px;font-weight:700}.youth-selector .p-selector-foot{font-size:10px;padding-bottom:35px;margin:0 6vw;color:#426247}.youth-home .life-intro h2{font-weight:800}.youth-home .life-card{border-radius:24px;box-shadow:0 9px 0 #075b380d}.youth-home .life-card:nth-child(2){background:#ffe176}.youth-home .life-card:nth-child(3){background:#ffe2c8}.youth-home .life-card:nth-child(4){background:#ddebaf}.youth-home .life-text h3{font-weight:800}.youth-home .size-panel{background:#ffe176}.youth-home .buy{background:#ffdc48;color:#075b38}.youth-home .buy .eyebrow{color:#075b38}.youth-home .buy .btn{background:#075b38;color:#fffbed;border-color:#075b38}.youth-home .buy .btn.outline{background:#fffbed;color:#075b38}.youth-home .buy:before{color:#075b3808}.youth-home .home-quality{background:#e7f1cd}.youth-home .article-card{border-radius:20px}.youth-home .wide-cta{background:#e0edb7}.youth-home .p-video-modal{border-radius:18px}.youth-home .p-video-modal .p-kicker{font-size:9px;letter-spacing:1px}.youth-home .p-video-modal h2{font-size:27px;letter-spacing:-1px;margin:15px 0}
 @media(max-width:850px){.youth-home .home-cover h1{font-size:58px}.youth-home .home-cover-copy{width:50%}.youth-home .home-cover>img{width:60%}.youth-selector .p-config-art{height:430px}.youth-selector .p-config-art img{height:350px}.youth-selector .p-config-ring{width:330px;height:330px}}
 @media(max-width:650px){.youth-home .brand-nav{background:#fffbed;color:#075b38}.youth-home .home-cover{padding:0;min-height:0}.youth-home .home-cover>img{position:static;width:100%;height:auto;aspect-ratio:4/3;object-fit:cover}.youth-home .home-cover-copy{width:100%;padding:30px 6vw 38px}.youth-home .home-cover h1{font-size:56px;letter-spacing:-2px}.youth-home .home-cover-copy p{font-size:13px}.youth-home .home-cover .image-credit{padding:0 6vw 14px;background:transparent;border-radius:0;font-size:8px}.youth-home .home-cover .actions{flex-direction:row;gap:9px}.youth-home .home-cover .actions .btn{font-size:10px;padding:15px 17px}.youth-selector .p-section-intro{padding:50px 6vw 10px}.youth-selector .p-section-intro h2{font-size:39px;letter-spacing:-1.5px}.youth-selector .p-config{grid-template-columns:1fr;gap:10px}.youth-selector .p-config-art{height:390px}.youth-selector .p-config-art img{height:325px}.youth-selector .p-config-ring{width:285px;height:285px;box-shadow:0 0 0 12px #ffffff50}.youth-selector .p-flavor-tabs{gap:8px;margin-bottom:23px}.youth-selector .p-flavor-tabs button{font-size:10px;padding:11px 14px}.youth-selector .p-config-copy h3{font-size:49px}.youth-selector .p-config-copy p{font-size:13px}.youth-selector .p-selector-foot{font-size:9px;gap:20px}.youth-selector .p-config-actions{gap:20px}.youth-home .life-text h3{font-size:28px}.youth-home .home-cover:after{display:none}}
+/* ====================================================================
+   VIETNAMESE TYPOGRAPHY HARDENING: PREVENT OVERLAPPING CHARACTERS & LINES
+   ==================================================================== */
+h1, h2, h3, h4,
+.home-cover h1,
+.page-banner h1,
+.product-hero h1,
+.product-copy h1,
+.partner-hero h1,
+.catalog-hero h1,
+.about-hero h1,
+.cvt-story-hero h1,
+.cvt-show-head h1,
+.cvt-show-head h2,
+.hero-v2 h1,
+.premium-main h1,
+.premium-main h2,
+.premium-main h3 {
+  letter-spacing: -0.015em !important;
+  line-height: 1.22 !important;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+h1 i, h1 em, h2 i, h2 em {
+  letter-spacing: -0.01em !important;
+}
+
+.home-cover h1 span {
+  margin-top: 8px;
+}
+
+.cvt-show-head h1,
+.cvt-show-head h2 {
+  line-height: 1.25 !important;
+  letter-spacing: -0.015em !important;
+  margin-bottom: 22px !important;
+}

@@ -1,6 +1,24 @@
 import assert from 'assert';
+import fs from 'fs';
+import path from 'path';
 import { createSessionToken } from '../api/admin/_auth.js';
 import handlerAdmin from '../api/admin/index.js';
+
+// Auto-load .env.local if present
+try {
+  const envPath = path.resolve('G:/LYHU/Projects/CTV-26.11/.env.local');
+  if (fs.existsSync(envPath)) {
+    const lines = fs.readFileSync(envPath, 'utf8').split('\n');
+    for (const l of lines) {
+      const match = l.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
+      if (match) {
+        const key = match[1];
+        const val = (match[2] || '').trim().replace(/^["']|["']$/g, '');
+        if (!process.env[key]) process.env[key] = val;
+      }
+    }
+  }
+} catch (_) {}
 
 function mockRes() {
   const res = {
