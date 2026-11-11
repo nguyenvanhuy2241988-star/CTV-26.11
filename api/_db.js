@@ -210,3 +210,140 @@ export async function saveEntry({ id, kind, data, published }) {
   }
   return true;
 }
+
+// ====================================================================
+// PERSISTENT DISTRIBUTED RATE LIMITING FOR ADMIN LOGIN
+// Shared across all serverless lambda instances via cvt_admin_attempts table
+// ====================================================================
+
+const memoryRateLimit = new Map(); // Local backup only if DB table isn't created yet
+const MAX_ATTEMPTS = 5;
+const WINDOW_MS = 15 * 60 * 1000; // 15 mins
+const LOCKOUT_MS = 15 * 60 * 1000; // 15 mins
+
+export async function checkPersistentLoginRateLimit(ip) {
+  const sb = getSupabaseConfig();
+  const now = Date.now();
+
+  if (sb) {
+    try {
+      const res = await fetch(`${sb.url}/rest/v1/cvt_admin_attempts?ip=eq.${encodeURIComponent(ip)}&select=*`, {
+        headers: sb.headers
+      });
+      if (res.ok) {
+        const rows = await res.json();
+        if (Array.isArray(rows) && rows.length > 0) {
+          const record = rows[0];
+          const lockedUntil = record.locked_until ? new Date(record.locked_until).getTime() : 0;
+          if (lockedUntil > now) {
+            const remainingSec = Math.ceil((lockedUntil - now) / 1000);
+            return { allowed: false, remainingSec };
+          }
+          const firstAttempt = new Date(record.first_attempt).getTime();
+          if (now - firstAttempt > WINDOW_MS) {
+            // Expired window, allow
+            return { allowed: true, attempts: 0 };
+          }
+          if (record.attempts >= MAX_ATTEMPTS) {
+            return { allowed: false, remainingSec: Math.ceil(LOCKOUT_MS / 1000) };
+          }
+          return { allowed: true, attempts: record.attempts };
+        }
+      }
+    } catch (e) {
+      console.warn('Persistent rate limit query warning:', e);
+    }
+  }
+
+  // In-memory fallback
+  const mem = memoryRateLimit.get(ip);
+  if (!mem) return { allowed: true, attempts: 0 };
+  if (mem.lockedUntil && now < mem.lockedUntil) {
+    return { allowed: false, remainingSec: Math.ceil((mem.lockedUntil - now) / 1000) };
+  }
+  if (now - mem.firstAttempt > WINDOW_MS) {
+    memoryRateLimit.delete(ip);
+    return { allowed: true, attempts: 0 };
+  }
+  if (mem.count >= MAX_ATTEMPTS) {
+    mem.lockedUntil = now + LOCKOUT_MS;
+    return { allowed: false, remainingSec: Math.ceil(LOCKOUT_MS / 1000) };
+  }
+  return { allowed: true, attempts: mem.count };
+}
+
+export async function recordPersistentFailedLogin(ip) {
+  const sb = getSupabaseConfig();
+  const now = Date.now();
+  const nowIso = new Date(now).toISOString();
+
+  // Local backup
+  const mem = memoryRateLimit.get(ip) || { count: 0, firstAttempt: now, lockedUntil: 0 };
+  mem.count += 1;
+  if (mem.count >= MAX_ATTEMPTS) {
+    mem.lockedUntil = now + LOCKOUT_MS;
+  }
+  memoryRateLimit.set(ip, mem);
+
+  if (sb) {
+    try {
+      const checkRes = await fetch(`${sb.url}/rest/v1/cvt_admin_attempts?ip=eq.${encodeURIComponent(ip)}&select=*`, {
+        headers: sb.headers
+      });
+      if (checkRes.ok) {
+        const rows = await checkRes.json();
+        if (Array.isArray(rows) && rows.length > 0) {
+          const rec = rows[0];
+          const newAttempts = (rec.attempts || 0) + 1;
+          const lockedUntilIso = newAttempts >= MAX_ATTEMPTS ? new Date(now + LOCKOUT_MS).toISOString() : null;
+          await fetch(`${sb.url}/rest/v1/cvt_admin_attempts?ip=eq.${encodeURIComponent(ip)}`, {
+            method: 'PATCH',
+            headers: sb.headers,
+            body: JSON.stringify({
+              attempts: newAttempts,
+              locked_until: lockedUntilIso,
+              updated_at: nowIso
+            })
+          });
+          return newAttempts;
+        }
+      }
+
+      // First failed attempt insert
+      await fetch(`${sb.url}/rest/v1/cvt_admin_attempts`, {
+        method: 'POST',
+        headers: {
+          ...sb.headers,
+          'Prefer': 'resolution=merge-duplicates'
+        },
+        body: JSON.stringify({
+          ip,
+          attempts: 1,
+          first_attempt: nowIso,
+          locked_until: null,
+          updated_at: nowIso
+        })
+      });
+      return 1;
+    } catch (e) {
+      console.warn('Persistent recordFailedLogin error:', e);
+    }
+  }
+
+  return mem.count;
+}
+
+export async function clearPersistentLoginAttempts(ip) {
+  memoryRateLimit.delete(ip);
+  const sb = getSupabaseConfig();
+  if (sb) {
+    try {
+      await fetch(`${sb.url}/rest/v1/cvt_admin_attempts?ip=eq.${encodeURIComponent(ip)}`, {
+        method: 'DELETE',
+        headers: sb.headers
+      });
+    } catch (e) {
+      console.warn('Persistent clearLoginAttempts error:', e);
+    }
+  }
+}

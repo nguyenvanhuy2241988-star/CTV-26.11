@@ -2,7 +2,7 @@
 
 ## 1. Thông tin Dự án
 - **Domain chính thức**: `https://www.cvt.com.vn` (và `https://cvt.com.vn`)
-- **Hosting**: Vercel (Project name: `ctv-26-11`)
+- **Hosting**: Vercel (Project name: `ctv-26-11` thuộc team `LYHU's projects`)
 - **GitHub Repository**: `nguyenvanhuy2241988-star/CTV-26.11`
 - **Nhánh triển khai**:
   - `main`: Nhánh production chính thức.
@@ -15,10 +15,10 @@ Cần cấu hình các biến sau trong phần **Settings > Environment Variable
 | Tên biến | Mô tả | Bắt buộc |
 | :--- | :--- | :--- |
 | `CVT_ADMIN_PASSWORD` | Mật khẩu truy cập trang quản trị `/quan-tri` | Có |
-| `SUPABASE_URL` | Địa chỉ project Supabase (nếu kết nối DB) | Khuyến nghị |
-| `SUPABASE_SERVICE_ROLE_KEY` | Khóa Service Role kết nối DB bền vững | Khuyến nghị |
+| `SUPABASE_URL` | Địa chỉ project Supabase | Có (để lưu dữ liệu thật) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Khóa Service Role kết nối DB bền vững | Có (để lưu dữ liệu thật) |
 
-*Lưu ý: Nếu chưa cấu hình Supabase, hệ thống API vẫn vận hành bình thường nhờ cơ chế fallback in-memory/preview kết hợp gửi email thông báo tự động về `lyhu.vn@gmail.com`.*
+*Nguyên tắc nghiêm ngặt: Hệ thống KHÔNG lưu tạm vào bộ nhớ in-memory khi thiếu cấu hình DB nhằm tránh mất dữ liệu khách hàng trên môi trường serverless. Nếu DB chưa sẵn sàng, hệ thống báo 503 và hướng dẫn khách liên hệ Hotline/Zalo.*
 
 ## 3. Cấu trúc Bảng Cơ sở dữ liệu (Supabase / PostgreSQL SQL)
 Chạy mã SQL sau trong SQL Editor của Supabase để tạo bảng:
@@ -42,7 +42,6 @@ CREATE TABLE IF NOT EXISTS cvt_requests (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Index tra cứu idempotency và lọc thời gian
 CREATE INDEX IF NOT EXISTS idx_cvt_requests_key ON cvt_requests(request_key);
 CREATE INDEX IF NOT EXISTS idx_cvt_requests_status ON cvt_requests(status);
 CREATE INDEX IF NOT EXISTS idx_cvt_requests_created ON cvt_requests(created_at DESC);
@@ -57,6 +56,15 @@ CREATE TABLE IF NOT EXISTS cvt_entries (
 );
 
 CREATE INDEX IF NOT EXISTS idx_cvt_entries_kind ON cvt_entries(kind);
+
+-- 3. Bảng chia sẻ Rate Limiting cho Đăng nhập Quản trị (Chống Brute Force trên nhiều serverless instance)
+CREATE TABLE IF NOT EXISTS cvt_admin_attempts (
+  ip TEXT PRIMARY KEY,
+  attempts INT NOT NULL DEFAULT 1,
+  first_attempt TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  locked_until TIMESTAMP WITH TIME ZONE,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
 ```
 
 ## 4. Kiểm tra và Nghiệm thu (QA Checklist)
@@ -65,6 +73,7 @@ CREATE INDEX IF NOT EXISTS idx_cvt_entries_kind ON cvt_entries(kind);
 - [x] Bảo toàn Meta Pixel ID `1117198146781464` trên tất cả các trang.
 - [x] Tích hợp Floating CTA gọi Hotline `0969 069 798` và nhắn tin Zalo.
 - [x] Khôi phục iframe thật và kết nối biểu mẫu tại `/yeu-cau-hop-tac.html` sang `/dang-ky.html`.
-- [x] Trang quản trị `/quan-tri` bảo vệ bằng server-side session, không phụ thuộc header ChatGPT.
-- [x] Build multi-page Vite hoàn tất không lỗi, cấu hình `vercel.json` sạch đường dẫn (`cleanUrls`).
-- [x] Đã tạo nhánh sao lưu dự phòng `backup/production-before-redesign-296355c`.
+- [x] Chỉ lưu DB thật: chặn 503 khi chưa có DB, không lưu tạm memory.
+- [x] Giải quyết triệt để Race condition: Request thua cuộc đua nhận lại đúng ID đã lưu và **không** gửi email lần 2.
+- [x] Email thông báo: `await` phản hồi từ gateway và xác nhận trạng thái `gateway_accepted`.
+- [x] Quản trị phân tán: Rate limiting lưu vào DB chia sẻ giữa các instance Vercel.

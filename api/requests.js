@@ -68,6 +68,7 @@ export default async function handler(req, res) {
     // 5. Pre-check idempotency: Check if key was already submitted
     const existing = await findRequestByKey(key);
     if (existing) {
+      // PRE-EXISTING: Return 200 immediately, NEVER send email on duplicate!
       return res.status(200).json({
         ok: true,
         id: existing.id,
@@ -107,12 +108,23 @@ export default async function handler(req, res) {
       });
     }
 
-    // The canonical ID is the ID actually committed to the DB
     const finalId = savedRecord.id || candidateId;
-    const isDuplicate = !!savedRecord.duplicate;
+
+    // CRITICAL FIX: If this request lost the concurrent insert race (duplicate: true),
+    // RETURN IMMEDIATELY. DO NOT dispatch email notification twice!
+    if (savedRecord.duplicate) {
+      return res.status(200).json({
+        ok: true,
+        id: finalId,
+        status: savedRecord.status || 'new',
+        duplicate: true,
+        message: 'Yêu cầu hợp tác này đã được tiếp nhận.'
+      });
+    }
 
     // 7. Verified email notification (FormSubmit)
-    // Await with timeout to guarantee delivery confirmation without blocking indefinitely
+    // ONLY sent when a genuinely NEW record is created!
+    // Await with timeout to verify whether gateway accepted the dispatch.
     let emailStatus = 'pending';
     try {
       const controller = new AbortController();
@@ -125,7 +137,7 @@ export default async function handler(req, res) {
           'Accept': 'application/json'
         },
         body: JSON.stringify({
-          _subject: `🔥 [CVT Web] Yêu Cầu Hợp Tác: ${company} - ${audience} (${phone})`,
+          _subject: `🔥 [CVT Web] Yêu Cầu Hợp Tác Mới: ${company} - ${audience} (${phone})`,
           'Mã yêu cầu': finalId,
           'Mô hình': audience,
           'Nhu cầu': purpose,
@@ -145,22 +157,23 @@ export default async function handler(req, res) {
       clearTimeout(timeoutId);
 
       if (emailRes.ok) {
-        emailStatus = 'delivered';
+        // Explicitly labeled as gateway_accepted (service accepted for delivery; inbox arrival depends on FormSubmit & Gmail)
+        emailStatus = 'gateway_accepted';
       } else {
         const errText = await emailRes.text();
-        emailStatus = `failed_${emailRes.status}`;
-        console.warn('FormSubmit email service error:', emailRes.status, errText);
+        emailStatus = `gateway_rejected_${emailRes.status}`;
+        console.warn('FormSubmit email service rejection:', emailRes.status, errText);
       }
     } catch (mailErr) {
-      emailStatus = 'network_timeout';
-      console.warn('FormSubmit email notice warning (non-fatal):', mailErr.message);
+      emailStatus = 'gateway_timeout';
+      console.warn('FormSubmit email network warning (non-fatal):', mailErr.message);
     }
 
-    return res.status(isDuplicate ? 200 : 201).json({
+    return res.status(201).json({
       ok: true,
       id: finalId,
-      duplicate: isDuplicate,
-      emailStatus: emailStatus,
+      duplicate: false,
+      emailDispatch: emailStatus,
       message: 'Đã tiếp nhận yêu cầu hợp tác thành công!'
     });
 

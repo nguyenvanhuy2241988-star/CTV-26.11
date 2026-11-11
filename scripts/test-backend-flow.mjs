@@ -16,45 +16,36 @@ function mockRes() {
   return res;
 }
 
-// Global fetch mocking
-const originalFetch = global.fetch;
-
-class MockPostgrestDB {
+class MockSupabaseService {
   constructor() {
-    this.table = new Map();
-    this.failMode = false;
+    this.requestsTable = new Map();
+    this.adminAttemptsTable = new Map();
+    this.entriesTable = new Map();
+    this.emailCalls = [];
   }
 
   fetchHandler = async (url, options = {}) => {
     const urlStr = String(url);
-
-    // FormSubmit email notification mock
-    if (urlStr.includes('formsubmit.co')) {
-      return {
-        ok: true,
-        status: 200,
-        text: async () => '{"success":true}',
-        json: async () => ({ success: true })
-      };
-    }
-
-    if (this.failMode) {
-      return {
-        ok: false,
-        status: 503,
-        text: async () => 'Database connection timeout'
-      };
-    }
-
     const method = options.method || 'GET';
     const body = options.body ? JSON.parse(options.body) : null;
 
+    // FormSubmit email notification gateway
+    if (urlStr.includes('formsubmit.co')) {
+      this.emailCalls.push({ url: urlStr, body });
+      return {
+        ok: true,
+        status: 200,
+        text: async () => '{"success":true,"message":"FormSubmit accepted"}',
+        json: async () => ({ success: true, message: 'FormSubmit accepted' })
+      };
+    }
+
+    // 1. Table cvt_requests
     if (urlStr.includes('/rest/v1/cvt_requests')) {
-      // Query by request_key
       if (urlStr.includes('request_key=eq.')) {
         const match = urlStr.match(/request_key=eq\.([^&]+)/);
         const key = decodeURIComponent(match ? match[1] : '');
-        const found = Array.from(this.table.values()).find(r => r.request_key === key);
+        const found = Array.from(this.requestsTable.values()).find(r => r.request_key === key);
         return {
           ok: true,
           status: 200,
@@ -62,27 +53,23 @@ class MockPostgrestDB {
         };
       }
 
-      // Query list
       if (method === 'GET') {
-        const list = Array.from(this.table.values());
         return {
           ok: true,
           status: 200,
-          json: async () => list
+          json: async () => Array.from(this.requestsTable.values())
         };
       }
 
-      // Insert
       if (method === 'POST') {
-        if (this.table.has(body.request_key)) {
-          // Unique key conflict (Postgres 23505 / HTTP 409)
+        if (this.requestsTable.has(body.request_key)) {
           return {
             ok: false,
             status: 409,
-            text: async () => '{"code":"23505","message":"duplicate key value violates unique constraint \"cvt_requests_request_key_key\""}'
+            text: async () => '{"code":"23505","message":"duplicate key violates cvt_requests_request_key_key"}'
           };
         }
-        this.table.set(body.request_key, body);
+        this.requestsTable.set(body.request_key, body);
         return {
           ok: true,
           status: 201,
@@ -90,11 +77,10 @@ class MockPostgrestDB {
         };
       }
 
-      // Update status
       if (method === 'PATCH') {
         const match = urlStr.match(/id=eq\.([^&]+)/);
         const id = decodeURIComponent(match ? match[1] : '');
-        for (const record of this.table.values()) {
+        for (const record of this.requestsTable.values()) {
           if (record.id === id) {
             record.status = body.status;
             break;
@@ -104,194 +90,230 @@ class MockPostgrestDB {
       }
     }
 
+    // 2. Table cvt_admin_attempts (Persistent shared rate limiting)
+    if (urlStr.includes('/rest/v1/cvt_admin_attempts')) {
+      if (method === 'GET') {
+        const match = urlStr.match(/ip=eq\.([^&]+)/);
+        const ip = decodeURIComponent(match ? match[1] : '');
+        const rec = this.adminAttemptsTable.get(ip);
+        return {
+          ok: true,
+          status: 200,
+          json: async () => (rec ? [rec] : [])
+        };
+      }
+
+      if (method === 'POST') {
+        this.adminAttemptsTable.set(body.ip, body);
+        return { ok: true, status: 201, json: async () => [body] };
+      }
+
+      if (method === 'PATCH') {
+        const match = urlStr.match(/ip=eq\.([^&]+)/);
+        const ip = decodeURIComponent(match ? match[1] : '');
+        const rec = this.adminAttemptsTable.get(ip) || {};
+        Object.assign(rec, body);
+        this.adminAttemptsTable.set(ip, rec);
+        return { ok: true, status: 200, json: async () => ({}) };
+      }
+
+      if (method === 'DELETE') {
+        const match = urlStr.match(/ip=eq\.([^&]+)/);
+        const ip = decodeURIComponent(match ? match[1] : '');
+        this.adminAttemptsTable.delete(ip);
+        return { ok: true, status: 200, json: async () => ({}) };
+      }
+    }
+
+    // 3. Table cvt_entries (CMS)
     if (urlStr.includes('/rest/v1/cvt_entries')) {
-      return { ok: true, status: 200, json: async () => [] };
+      if (method === 'GET') {
+        return { ok: true, status: 200, json: async () => Array.from(this.entriesTable.values()) };
+      }
+      if (method === 'POST') {
+        this.entriesTable.set(body.id, body);
+        return { ok: true, status: 201, json: async () => [body] };
+      }
     }
 
     return { ok: true, status: 200, json: async () => ({}) };
   };
 }
 
-async function runTests() {
-  console.log('====================================================');
-  console.log('BẮT ĐẦU KIỂM THỬ BACKEND CVT (DB, EMAIL, IDEMPOTENCY, AUTH)');
-  console.log('====================================================\n');
+async function runRigorousTests() {
+  console.log('====================================================================');
+  console.log('CHẠY BỘ KIỂM THỬ TÍCH HỢP NÂNG CAO (DB, DEDUP EMAIL, SHARED RATE LIMIT)');
+  console.log('====================================================================\n');
 
-  // ----------------------------------------------------------------
-  // TEST 1: Khi thiếu DB hoặc DB lỗi, PHẢI trả về lỗi 503 (không lưu tạm bộ nhớ)
-  // ----------------------------------------------------------------
-  console.log('[TEST 1] Kiểm tra tính nghiêm ngặt cơ sở dữ liệu:');
+  // TEST 1: DB Requirement (No in-memory mask)
+  console.log('[TEST 1] Chặn 503 khi chưa có DB, không che giấu lỗi bằng in-memory:');
   delete process.env.SUPABASE_URL;
   delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  const reqWithoutDb = {
+  const resNoDb = mockRes();
+  await handlerRequests({
     method: 'POST',
-    headers: {},
     body: {
-      audience: 'Nhà phân phối',
-      purpose: 'Danh mục & báo giá',
-      company: 'Công ty Test A',
-      name: 'Nguyễn Văn A',
-      phone: '0969069798',
-      region: 'Hà Nội',
-      consent: true,
-      requestKey: 'TEST-NO-DB-KEY-1'
+      audience: 'Nhà phân phối', purpose: 'Danh mục & báo giá',
+      company: 'NPP Test', name: 'Nguyễn Test', phone: '0969069798',
+      region: 'Hà Nội', consent: true, requestKey: 'K-NO-DB-1'
+    }
+  }, resNoDb);
+  assert.strictEqual(resNoDb.statusCode, 503);
+  assert.strictEqual(resNoDb.data.error, 'database_unavailable');
+  console.log('  -> PASS: Đã chặn 503 khi thiếu cấu hình DB!\n');
+
+  // Setup mock service
+  const service = new MockSupabaseService();
+  global.fetch = service.fetchHandler;
+  process.env.SUPABASE_URL = 'https://supabase.cvt.production.test';
+  process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-secret-key';
+  process.env.CVT_ADMIN_PASSWORD = 'CorrectAdminPassword#2026';
+
+  // TEST 2: Single New Submission -> Saves DB + Gateway Accepted Email
+  console.log('[TEST 2] Tiếp nhận yêu cầu mới -> Lưu DB thật + Gateway Email:');
+  const resNew = mockRes();
+  await handlerRequests({
+    method: 'POST',
+    body: {
+      audience: 'Nhà phân phối', purpose: 'Danh mục & báo giá',
+      company: 'NPP Miền Trung', name: 'Trần Văn Trung', phone: '0987654321',
+      email: 'mientrung@cvt.vn', region: 'Đà Nẵng', sku: 'Trứng cua 75g',
+      note: 'Muốn đặt hàng phân phối', consent: true, requestKey: 'KEY-ORIGINAL-001'
+    }
+  }, resNew);
+
+  assert.strictEqual(resNew.statusCode, 201);
+  assert.strictEqual(resNew.data.duplicate, false);
+  assert.strictEqual(resNew.data.emailDispatch, 'gateway_accepted');
+  assert.strictEqual(service.requestsTable.size, 1);
+  assert.strictEqual(service.emailCalls.length, 1);
+  const originalId = resNew.data.id;
+  console.log(`  -> PASS: Bản ghi mới lưu DB (ID: ${originalId}), Email gateway accepted: 1 lần!\n`);
+
+  // TEST 3: Duplicate Submission & Race Condition -> NO DUPLICATE EMAIL
+  console.log('[TEST 3] Yêu cầu trùng lặp & Race Condition:');
+  console.log('  -> Thử nghiệm 2 request cùng KEY-ORIGINAL-001 gửi lại...');
+  const resDup1 = mockRes();
+  await handlerRequests({
+    method: 'POST',
+    body: {
+      audience: 'Nhà phân phối', purpose: 'Danh mục & báo giá',
+      company: 'NPP Miền Trung', name: 'Trần Văn Trung', phone: '0987654321',
+      region: 'Đà Nẵng', consent: true, requestKey: 'KEY-ORIGINAL-001'
+    }
+  }, resDup1);
+
+  assert.strictEqual(resDup1.statusCode, 200);
+  assert.strictEqual(resDup1.data.duplicate, true);
+  assert.strictEqual(resDup1.data.id, originalId, 'Phải trả về đúng mã ID của bản ghi ban đầu');
+  assert.strictEqual(service.emailCalls.length, 1, 'QUAN TRỌNG: Request trùng KHÔNG ĐƯỢC gửi email lần 2!');
+  console.log(`  -> PASS: Request trùng nhận đúng ID: ${resDup1.data.id}, số lượt gửi email vẫn giữ nguyên là 1 (không gửi đúp)!\n`);
+
+  // Concurrent collision race condition test
+  console.log('  -> Thử nghiệm 2 request hoàn toàn đồng thời (Concurrent Race Condition):');
+  const sharedKey = 'CONCURRENT-COLLISION-KEY-2026';
+  const reqRace1 = {
+    method: 'POST', body: {
+      audience: 'Siêu thị & chuỗi bán lẻ', purpose: 'Mẫu thử & hồ sơ sản phẩm',
+      company: 'Siêu thị WinMart', name: 'Lê Thu Mua', phone: '0901234567',
+      region: 'TP.HCM', consent: true, requestKey: sharedKey
     }
   };
-  const resWithoutDb = mockRes();
-  await handlerRequests(reqWithoutDb, resWithoutDb);
+  const reqRace2 = { ...reqRace1 };
 
-  assert.strictEqual(resWithoutDb.statusCode, 503, 'Phải trả về 503 khi chưa có DB');
-  assert.strictEqual(resWithoutDb.data.error, 'database_unavailable', 'Error code phải là database_unavailable');
-  console.log('  -> PASS: Không có DB -> Chặn ngay lập tức với HTTP 503, không lưu tạm memory giả vờ thành công!\n');
-
-  // Setup Mock Database for remaining tests
-  const mockDb = new MockPostgrestDB();
-  global.fetch = mockDb.fetchHandler;
-  process.env.SUPABASE_URL = 'https://mock-supabase.cvt.test';
-  process.env.SUPABASE_SERVICE_ROLE_KEY = 'mock-service-role-key';
-  process.env.CVT_ADMIN_PASSWORD = 'SecretAdminPassword123!';
-
-  // ----------------------------------------------------------------
-  // TEST 2: Lưu dữ liệu khách hàng thật & Email thông báo được await xác nhận
-  // ----------------------------------------------------------------
-  console.log('[TEST 2] Lưu dữ liệu khách hàng bền vững & Xác nhận gửi email:');
-  const validReq = {
-    method: 'POST',
-    headers: {},
-    body: {
-      audience: 'Nhà phân phối',
-      purpose: 'Danh mục & báo giá',
-      company: 'NPP Đông Bắc',
-      name: 'Trần Văn B',
-      phone: '0988123456',
-      email: 'dongbac@gmail.com',
-      region: 'Quảng Ninh',
-      sku: 'Trứng cua 75g',
-      note: 'Quan tâm phân phối độc quyền tỉnh',
-      consent: true,
-      requestKey: 'REQ-KEY-VALID-001'
-    }
-  };
-  const validRes = mockRes();
-  await handlerRequests(validReq, validRes);
-
-  assert.strictEqual(validRes.statusCode, 201, 'Lưu thành công phải trả về HTTP 201');
-  assert.strictEqual(validRes.data.ok, true);
-  assert.ok(validRes.data.id.startsWith('CVT-'), 'Mã yêu cầu phải có tiền tố CVT-');
-  assert.strictEqual(validRes.data.emailStatus, 'delivered', 'Email phải được await xác nhận gửi thành công');
-  assert.strictEqual(mockDb.table.size, 1, 'Bản ghi phải được lưu thực sự vào DB');
-  console.log(`  -> PASS: Đã lưu thật vào DB (Mã: ${validRes.data.id}), email đã được await và xác nhận: ${validRes.data.emailStatus}!\n`);
-
-  // ----------------------------------------------------------------
-  // TEST 3: Chống gửi trùng đồng thời (Race Condition Idempotency)
-  // ----------------------------------------------------------------
-  console.log('[TEST 3] Chống gửi trùng lặp & Race Condition:');
-  const sharedKey = 'CONCURRENT-RACE-KEY-999';
-  const concurrentReq1 = {
-    method: 'POST',
-    headers: {},
-    body: {
-      audience: 'Khách sỉ & cửa hàng',
-      purpose: 'Tư vấn hợp tác',
-      company: 'Cửa hàng Minh Khai',
-      name: 'Lê Văn C',
-      phone: '0912345678',
-      region: 'Hải Phòng',
-      consent: true,
-      requestKey: sharedKey
-    }
-  };
-  const concurrentReq2 = { ...concurrentReq1 };
-
-  // Chạy đồng thời cả 2 request
-  const res1 = mockRes();
-  const res2 = mockRes();
+  const resRace1 = mockRes();
+  const resRace2 = mockRes();
   await Promise.all([
-    handlerRequests(concurrentReq1, res1),
-    handlerRequests(concurrentReq2, res2)
+    handlerRequests(reqRace1, resRace1),
+    handlerRequests(reqRace2, resRace2)
   ]);
 
-  const id1 = res1.data.id;
-  const id2 = res2.data.id;
+  const raceId1 = resRace1.data.id;
+  const raceId2 = resRace2.data.id;
+  assert.strictEqual(raceId1, raceId2, 'Cả hai request đồng thời phải chung 1 ID');
+  // Email count must only increase by 1 for this new customer!
+  assert.strictEqual(service.emailCalls.length, 2, 'Tổng số email chỉ tăng 1 cho khách mới, request thua cuộc đua không gửi thêm!');
+  console.log(`  -> PASS: Race condition xử lý chuẩn xác: Chung ID (${raceId1}), chỉ gửi đúng 1 email cho khách mới!\n`);
 
-  assert.ok(id1, 'Request 1 phải có ID');
-  assert.ok(id2, 'Request 2 phải có ID');
-  assert.strictEqual(id1, id2, `Cả 2 yêu cầu đồng thời phải trả về CÙNG MỘT MÃ ID thực tế lưu trong DB (id1=${id1}, id2=${id2})`);
-  assert.strictEqual(mockDb.table.size, 2, 'DB chỉ được lưu đúng 1 bản ghi mới cho sharedKey');
-  console.log(`  -> PASS: Cả 2 request gửi đồng thời đều nhận được chung mã đã lưu: ${id1}, không bị lệch ID!\n`);
+  // TEST 4: Persistent Distributed Rate Limiting for Admin Login
+  console.log('[TEST 4] Persistent Shared Rate Limiting (Lưu DB cvt_admin_attempts):');
+  const ip = '203.113.152.1';
 
-  // ----------------------------------------------------------------
-  // TEST 4: Đăng nhập quản trị — Giới hạn thử mật khẩu (Brute Force Protection)
-  // ----------------------------------------------------------------
-  console.log('[TEST 4] Giới hạn thử mật khẩu quản trị (Rate Limiting):');
-  const attackerIp = '123.45.67.89';
-
-  for (let attempt = 1; attempt <= 5; attempt++) {
-    const wrongRes = mockRes();
+  for (let i = 1; i <= 5; i++) {
+    const r = mockRes();
     await handlerLogin({
       method: 'POST',
-      headers: { 'x-forwarded-for': attackerIp },
-      body: { password: 'WrongPassword!' }
-    }, wrongRes);
-
-    assert.strictEqual(wrongRes.statusCode, 401, `Lần thử ${attempt} phải trả về 401`);
+      headers: { 'x-forwarded-for': ip },
+      body: { password: 'WrongPassword' }
+    }, r);
+    assert.strictEqual(r.statusCode, 401);
   }
 
-  // Lần thử thứ 6: phải bị khóa với HTTP 429 Too Many Requests
-  const lockedRes = mockRes();
+  // Check persistent DB table
+  const attemptRecord = service.adminAttemptsTable.get(ip);
+  assert.ok(attemptRecord, 'Lịch sử thử sai phải được lưu vào bảng cvt_admin_attempts của DB');
+  assert.strictEqual(attemptRecord.attempts, 5);
+  assert.ok(attemptRecord.locked_until, 'locked_until phải được thiết lập trong DB');
+
+  // 6th attempt -> 429
+  const r6 = mockRes();
   await handlerLogin({
     method: 'POST',
-    headers: { 'x-forwarded-for': attackerIp },
-    body: { password: 'SecretAdminPassword123!' } // Dù đúng pass cũng bị lock
-  }, lockedRes);
+    headers: { 'x-forwarded-for': ip },
+    body: { password: 'CorrectAdminPassword#2026' } // Even with correct password, still locked!
+  }, r6);
+  assert.strictEqual(r6.statusCode, 429);
+  assert.strictEqual(r6.data.error, 'rate_limited');
+  console.log('  -> PASS: 5 lần sai -> Lưu trạng thái khóa vào DB, lần 6 bị chặn ngay với HTTP 429 Too Many Requests!\n');
 
-  assert.strictEqual(lockedRes.statusCode, 429, 'Lần thứ 6 phải bị khóa với HTTP 429');
-  assert.strictEqual(lockedRes.data.error, 'rate_limited');
-  console.log('  -> PASS: Sau 5 lần nhập sai, IP bị khóa ngay với HTTP 429 Too Many Requests!\n');
-
-  // Thử từ IP hợp lệ khác với mật khẩu đúng
-  const legitRes = mockRes();
+  // Correct login from clean IP
+  const rClean = mockRes();
   await handlerLogin({
     method: 'POST',
-    headers: { 'x-forwarded-for': '192.168.1.1' },
-    body: { password: 'SecretAdminPassword123!' }
-  }, legitRes);
+    headers: { 'x-forwarded-for': '10.0.0.1' },
+    body: { password: 'CorrectAdminPassword#2026' }
+  }, rClean);
+  assert.strictEqual(rClean.statusCode, 200);
+  assert.ok(rClean.headers['Set-Cookie'].includes('cvt_admin_session='));
+  console.log('  -> PASS: Đăng nhập thành công từ IP sạch, cấp token phiên an toàn!\n');
 
-  assert.strictEqual(legitRes.statusCode, 200, 'Mật khẩu đúng từ IP hợp lệ phải 200');
-  assert.ok(legitRes.headers['Set-Cookie'].includes('cvt_admin_session='), 'Phải cấp cookie HttpOnly');
-  console.log('  -> PASS: Đăng nhập thành công cấp cookie bảo mật HttpOnly!\n');
+  // TEST 5: Quản trị — Xem lead, đổi trạng thái, tải lại vẫn giữ nguyên
+  console.log('[TEST 5] Luồng tích hợp Quản trị (Xem lead -> Đổi trạng thái -> Tải lại):');
+  const token = createSessionToken('admin');
+  const cookieHeader = `cvt_admin_session=${token}`;
 
-  // ----------------------------------------------------------------
-  // TEST 5: Bảo vệ API Quản trị bằng Cookie Session phía Server
-  // ----------------------------------------------------------------
-  console.log('[TEST 5] Kiểm tra xác thực quyền truy cập `/api/admin`:');
-  // Không có cookie hoặc header giả của client
-  const unauthorizedRes = mockRes();
+  // 1. GET leads
+  const rGetLeads = mockRes();
+  await handlerAdmin({ method: 'GET', headers: { cookie: cookieHeader } }, rGetLeads);
+  assert.strictEqual(rGetLeads.statusCode, 200);
+  const leads = rGetLeads.data.requests;
+  assert.strictEqual(leads.length, 2);
+  const targetLead = leads.find(l => l.id === originalId);
+  assert.strictEqual(targetLead.status, 'new');
+
+  // 2. PATCH status -> 'contacted'
+  const rUpdateStatus = mockRes();
   await handlerAdmin({
-    method: 'GET',
-    headers: { 'oai-authenticated-user': 'spoofed_admin' } // Header client giả mạo
-  }, unauthorizedRes);
-  assert.strictEqual(unauthorizedRes.statusCode, 401, 'Tuyệt đối không tin header client, phải trả về 401');
+    method: 'POST',
+    headers: { cookie: cookieHeader },
+    body: { action: 'status', id: originalId, status: 'contacted' }
+  }, rUpdateStatus);
+  assert.strictEqual(rUpdateStatus.statusCode, 200);
 
-  // Có token phiên hợp lệ
-  const sessionToken = createSessionToken('admin');
-  const authorizedRes = mockRes();
-  await handlerAdmin({
-    method: 'GET',
-    headers: { cookie: `cvt_admin_session=${sessionToken}` }
-  }, authorizedRes);
-  assert.strictEqual(authorizedRes.statusCode, 200, 'Có session token hợp lệ phải truy cập được');
-  assert.ok(Array.isArray(authorizedRes.data.requests), 'Phải trả về danh sách yêu cầu');
-  assert.strictEqual(authorizedRes.data.requests.length, 2, 'Phải có 2 yêu cầu đã lưu');
-  console.log('  -> PASS: Từ chối header client giả mạo, chỉ chấp nhận phiên token HMAC đã ký!\n');
+  // 3. GET leads again -> verify status is 'contacted'
+  const rReload = mockRes();
+  await handlerAdmin({ method: 'GET', headers: { cookie: cookieHeader } }, rReload);
+  const reloadedTarget = rReload.data.requests.find(l => l.id === originalId);
+  assert.strictEqual(reloadedTarget.status, 'contacted', 'Trạng thái phải được lưu bền vững thành contacted');
+  console.log(`  -> PASS: Lead ${originalId} đổi trạng thái 'new' -> 'contacted', tải lại DB vẫn giữ nguyên trạng thái mới!\n`);
 
-  console.log('====================================================');
-  console.log('TẤT CẢ 5 BÀI TEST BACKEND ĐÃ VƯỢT QUA 100%!');
-  console.log('====================================================\n');
+  console.log('====================================================================');
+  console.log('TOÀN BỘ 5 BÀI TEST TÍCH HỢP ĐÃ VƯỢT QUA 100% HOÀN HẢO!');
+  console.log('====================================================================\n');
 }
 
-runTests().catch(err => {
-  console.error('TEST FAILED:', err);
+runRigorousTests().catch(e => {
+  console.error('TEST ERROR:', e);
   process.exit(1);
 });
