@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { isDbConfigured, findRequestByKey, insertRequest } from './_db.js';
+import { isDbConfigured, findRequestByKey, insertRequest, confirmEmailDispatched } from './_db.js';
 
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
@@ -15,6 +15,17 @@ export default async function handler(req, res) {
     }
 
     const b = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
+
+    // Action: confirm browser email dispatch to synchronize outbox
+    if (b.action === 'confirm_email_dispatch') {
+      const id = typeof b.id === 'string' ? b.id.trim() : '';
+      const requestKey = typeof b.requestKey === 'string' ? b.requestKey.trim() : '';
+      if (!id || !requestKey) {
+        return res.status(400).json({ error: 'missing_params' });
+      }
+      const ok = await confirmEmailDispatched(id, requestKey);
+      return res.status(200).json({ ok });
+    }
 
     // 1. Anti-spam honeypot check
     if (b.website) {

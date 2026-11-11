@@ -398,7 +398,49 @@
           document.getElementById('req-code').textContent = data.id || payload.requestKey;
           notifyHeight();
 
-
+          // Client browser dispatch to FormSubmit (residential/mobile IP bypasses datacenter Cloudflare challenge)
+          if (!data.duplicate) {
+            try {
+              fetch('https://formsubmit.co/ajax/lyhu.vn@gmail.com', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                  _subject: '🔥 [CVT Web] Yêu Cầu Hợp Tác Mới: ' + payload.company + ' - ' + payload.audience + ' (' + payload.phone + ')',
+                  'Mã yêu cầu': data.id || payload.requestKey,
+                  'Mô hình': payload.audience,
+                  'Nhu cầu': payload.purpose,
+                  'Đơn vị': payload.company,
+                  'Người liên hệ': payload.name,
+                  'Số điện thoại': payload.phone,
+                  'Email': payload.email || 'Không có',
+                  'Khu vực': payload.region,
+                  'Sản phẩm quan tâm': payload.sku || 'Tất cả các dòng',
+                  'Ghi chú': payload.note || 'Không có',
+                  'Thời gian': new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
+                  _template: 'table'
+                })
+              }).then(function(mailRes) {
+                if (mailRes.ok) return mailRes.json().catch(function() { return {}; });
+                return null;
+              }).then(function(mailJson) {
+                if (mailJson && (mailJson.success === true || mailJson.success === 'true')) {
+                  // Synchronize with server email outbox
+                  fetch('/api/requests', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      action: 'confirm_email_dispatch',
+                      id: data.id,
+                      requestKey: payload.requestKey
+                    })
+                  }).catch(function() {});
+                }
+              }).catch(function() {});
+            } catch (ignoreErr) {}
+          }
         } else {
           errEl.textContent = data.error || 'Chưa gửi được yêu cầu. Vui lòng liên hệ Hotline 0969 069 798.';
           btn.disabled = false;

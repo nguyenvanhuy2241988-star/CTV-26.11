@@ -48,6 +48,31 @@ export async function insertRequest(data) {
   return result;
 }
 
+export async function confirmEmailDispatched(id, requestKey) {
+  const sb = getSupabaseConfig();
+  if (!sb) return false;
+
+  const existing = await findRequestByKey(requestKey);
+  if (!existing || existing.id !== id) return false;
+
+  try {
+    const res = await fetch(`${sb.url}/rest/v1/cvt_email_outbox?request_id=eq.${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: sb.headers,
+      body: JSON.stringify({
+        state: 'gateway_accepted',
+        gateway_accepted_at: new Date().toISOString(),
+        last_error: null,
+        updated_at: new Date().toISOString()
+      })
+    });
+    return res.ok;
+  } catch (err) {
+    console.warn('confirmEmailDispatched update error:', err);
+    return false;
+  }
+}
+
 export async function listRequests(limit = 200) {
   const sb = getSupabaseConfig();
   if (!sb) {

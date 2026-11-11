@@ -63,3 +63,25 @@ test('queue DB rejects HTTP errors and missing secret key',async()=>{
   await assert.rejects(()=>queueRpc('cvt_claim_email'),/UNCONFIGURED/);
  } finally {global.fetch=old;}
 });
+test('confirm_email_dispatch updates outbox when requestKey matches',async()=>{
+ const old=global.fetch;let patched=0;
+ process.env.SUPABASE_URL='https://test.invalid';process.env.SUPABASE_SERVICE_ROLE_KEY='test';
+ try {
+  global.fetch=async(url,opt)=>{
+   if(String(url).includes('cvt_requests?request_key=eq.')) return response(200,[{id:'CVT-QA',status:'new'}]);
+   if(String(url).includes('cvt_email_outbox?request_id=eq.CVT-QA')) {
+    assert.equal(opt.method,'PATCH');
+    const b=JSON.parse(opt.body);
+    assert.equal(b.state,'gateway_accepted');
+    patched++;
+    return response(200,[{request_id:'CVT-QA',state:'gateway_accepted'}]);
+   }
+   throw new Error('unexpected: ' + url);
+  };
+  const r=res();
+  await requests({method:'POST',body:{action:'confirm_email_dispatch',id:'CVT-QA',requestKey:'QA'}},r);
+  assert.equal(r.code,200);
+  assert.equal(r.data.ok,true);
+  assert.equal(patched,1);
+ } finally {global.fetch=old;}
+});
