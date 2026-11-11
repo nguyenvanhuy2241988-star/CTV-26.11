@@ -15,13 +15,13 @@ Cần cấu hình các biến sau trong phần **Settings > Environment Variable
 | Tên biến | Mô tả | Bắt buộc |
 | :--- | :--- | :--- |
 | `CVT_ADMIN_PASSWORD` | Mật khẩu truy cập trang quản trị `/quan-tri` | Có |
-| `SUPABASE_URL` | Địa chỉ project Supabase | Có (để lưu dữ liệu thật) |
-| `SUPABASE_SERVICE_ROLE_KEY` | Khóa Service Role kết nối DB bền vững | Có (để lưu dữ liệu thật) |
+| `SUPABASE_URL` | Địa chỉ project Supabase | Có (để lưu dữ liệu thật & bảo vệ đăng nhập) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Khóa Service Role kết nối DB bền vững | Có (để lưu dữ liệu thật & bảo vệ đăng nhập) |
 
-*Nguyên tắc nghiêm ngặt: Hệ thống KHÔNG lưu tạm vào bộ nhớ in-memory khi thiếu cấu hình DB nhằm tránh mất dữ liệu khách hàng trên môi trường serverless. Nếu DB chưa sẵn sàng, hệ thống báo 503 và hướng dẫn khách liên hệ Hotline/Zalo.*
+*Nguyên tắc nghiêm ngặt: Hệ thống KHÔNG lưu tạm vào bộ nhớ in-memory khi thiếu cấu hình DB nhằm tránh mất dữ liệu khách hàng hoặc bypass rate limiting trên môi trường serverless. Nếu DB chưa sẵn sàng, hệ thống trả về 503.*
 
-## 3. Cấu trúc Bảng Cơ sở dữ liệu (Supabase / PostgreSQL SQL)
-Chạy mã SQL sau trong SQL Editor của Supabase để tạo bảng:
+## 3. Cấu trúc Bảng & Hàm RPC Cơ sở dữ liệu (Supabase / PostgreSQL SQL)
+Chạy mã SQL sau trong SQL Editor của Supabase để khởi tạo đầy đủ:
 
 ```sql
 -- 1. Bảng lưu yêu cầu hợp tác (Leads)
@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS cvt_entries (
 
 CREATE INDEX IF NOT EXISTS idx_cvt_entries_kind ON cvt_entries(kind);
 
--- 3. Bảng chia sẻ Rate Limiting cho Đăng nhập Quản trị (Chống Brute Force trên nhiều serverless instance)
+-- 3. Bảng Rate Limiting cho Đăng nhập Quản trị (Dùng chung cho mọi Vercel instance)
 CREATE TABLE IF NOT EXISTS cvt_admin_attempts (
   ip TEXT PRIMARY KEY,
   attempts INT NOT NULL DEFAULT 1,
@@ -65,15 +65,110 @@ CREATE TABLE IF NOT EXISTS cvt_admin_attempts (
   locked_until TIMESTAMP WITH TIME ZONE,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
-```
 
-## 4. Kiểm tra và Nghiệm thu (QA Checklist)
-- [x] Đã import toàn bộ 21 trang HTML + assets hình ảnh, bao bì 10 SKU, video.
-- [x] Đổi toàn bộ canonical URL và OpenGraph sang `https://www.cvt.com.vn`.
-- [x] Bảo toàn Meta Pixel ID `1117198146781464` trên tất cả các trang.
-- [x] Tích hợp Floating CTA gọi Hotline `0969 069 798` và nhắn tin Zalo.
-- [x] Khôi phục iframe thật và kết nối biểu mẫu tại `/yeu-cau-hop-tac.html` sang `/dang-ky.html`.
-- [x] Chỉ lưu DB thật: chặn 503 khi chưa có DB, không lưu tạm memory.
-- [x] Giải quyết triệt để Race condition: Request thua cuộc đua nhận lại đúng ID đã lưu và **không** gửi email lần 2.
-- [x] Email thông báo: `await` phản hồi từ gateway và xác nhận trạng thái `gateway_accepted`.
-- [x] Quản trị phân tán: Rate limiting lưu vào DB chia sẻ giữa các instance Vercel.
+-- 4. Hàm RPC: Kiểm tra Rate Limit Đăng nhập
+CREATE OR REPLACE FUNCTION cvt_check_login_rate_limit(
+  p_ip TEXT,
+  p_window_interval INTERVAL DEFAULT INTERVAL '15 minutes'
+)
+RETURNS TABLE (
+  allowed BOOLEAN,
+  current_attempts INT,
+  locked_until TIMESTAMP WITH TIME ZONE,
+  remaining_seconds INT
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_rec cvt_admin_attempts%ROWTYPE;
+  v_now TIMESTAMP WITH TIME ZONE := now();
+BEGIN
+  SELECT * INTO v_rec FROM cvt_admin_attempts WHERE ip = p_ip;
+
+  IF NOT FOUND THEN
+    RETURN QUERY SELECT TRUE, 0, NULL::TIMESTAMP WITH TIME ZONE, 0;
+    RETURN;
+  END IF;
+
+  IF v_rec.locked_until IS NOT NULL AND v_rec.locked_until > v_now THEN
+    RETURN QUERY SELECT FALSE, v_rec.attempts, v_rec.locked_until, 
+      CEIL(EXTRACT(EPOCH FROM (v_rec.locked_until - v_now)))::INT;
+    RETURN;
+  END IF;
+
+  RETURN QUERY SELECT TRUE, v_rec.attempts, NULL::TIMESTAMP WITH TIME ZONE, 0;
+END;
+$$;
+
+-- 5. Hàm RPC: Tăng bộ đếm thử sai nguyên tử (Atomic Counter with Row-Level Lock)
+CREATE OR REPLACE FUNCTION cvt_record_login_failure(
+  p_ip TEXT,
+  p_max_attempts INT DEFAULT 5,
+  p_window_interval INTERVAL DEFAULT INTERVAL '15 minutes',
+  p_lockout_interval INTERVAL DEFAULT INTERVAL '15 minutes'
+)
+RETURNS TABLE (
+  allowed BOOLEAN,
+  current_attempts INT,
+  locked_until TIMESTAMP WITH TIME ZONE,
+  remaining_seconds INT
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_rec cvt_admin_attempts%ROWTYPE;
+  v_now TIMESTAMP WITH TIME ZONE := now();
+  v_new_attempts INT;
+  v_locked_until TIMESTAMP WITH TIME ZONE := NULL;
+BEGIN
+  SELECT * INTO v_rec FROM cvt_admin_attempts WHERE ip = p_ip FOR UPDATE;
+
+  IF NOT FOUND THEN
+    INSERT INTO cvt_admin_attempts (ip, attempts, first_attempt, locked_until, updated_at)
+    VALUES (p_ip, 1, v_now, NULL, v_now);
+    
+    RETURN QUERY SELECT TRUE, 1, NULL::TIMESTAMP WITH TIME ZONE, 0;
+    RETURN;
+  END IF;
+
+  IF v_rec.locked_until IS NOT NULL AND v_rec.locked_until > v_now THEN
+    RETURN QUERY SELECT FALSE, v_rec.attempts, v_rec.locked_until, 
+      CEIL(EXTRACT(EPOCH FROM (v_rec.locked_until - v_now)))::INT;
+    RETURN;
+  END IF;
+
+  -- Nếu đã quá cửa sổ 15 phút, reset attempts về 1
+  IF v_now - v_rec.first_attempt > p_window_interval THEN
+    UPDATE cvt_admin_attempts
+    SET attempts = 1,
+        first_attempt = v_now,
+        locked_until = NULL,
+        updated_at = v_now
+    WHERE ip = p_ip;
+
+    RETURN QUERY SELECT TRUE, 1, NULL::TIMESTAMP WITH TIME ZONE, 0;
+    RETURN;
+  END IF;
+
+  v_new_attempts := v_rec.attempts + 1;
+  IF v_new_attempts >= p_max_attempts THEN
+    v_locked_until := v_now + p_lockout_interval;
+  END IF;
+
+  UPDATE cvt_admin_attempts
+  SET attempts = v_new_attempts,
+      locked_until = v_locked_until,
+      updated_at = v_now
+  WHERE ip = p_ip;
+
+  IF v_locked_until IS NOT NULL THEN
+    RETURN QUERY SELECT FALSE, v_new_attempts, v_locked_until, 
+      CEIL(EXTRACT(EPOCH FROM p_lockout_interval))::INT;
+  ELSE
+    RETURN QUERY SELECT TRUE, v_new_attempts, NULL::TIMESTAMP WITH TIME ZONE, 0;
+  END IF;
+END;
+$$;
+```

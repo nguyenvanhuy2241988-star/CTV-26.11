@@ -134,7 +134,9 @@ export default async function handler(req, res) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'Origin': 'https://www.cvt.com.vn',
+          'Referer': 'https://www.cvt.com.vn/dang-ky.html'
         },
         body: JSON.stringify({
           _subject: `🔥 [CVT Web] Yêu Cầu Hợp Tác Mới: ${company} - ${audience} (${phone})`,
@@ -157,8 +159,21 @@ export default async function handler(req, res) {
       clearTimeout(timeoutId);
 
       if (emailRes.ok) {
-        // Explicitly labeled as gateway_accepted (service accepted for delivery; inbox arrival depends on FormSubmit & Gmail)
-        emailStatus = 'gateway_accepted';
+        let json = null;
+        try {
+          json = await emailRes.json();
+        } catch (_) {}
+
+        if (json && (json.success === 'true' || json.success === true)) {
+          // Explicitly labeled as gateway_accepted (service accepted payload for delivery)
+          emailStatus = 'gateway_accepted';
+        } else if (json && (json.success === 'false' || json.success === false)) {
+          // FormSubmit requires email activation on first usage, or rejected content
+          emailStatus = `gateway_activation_required: ${json.message || 'Form needs email confirmation'}`;
+          console.warn('FormSubmit activation/status warning:', json.message);
+        } else {
+          emailStatus = 'gateway_accepted';
+        }
       } else {
         const errText = await emailRes.text();
         emailStatus = `gateway_rejected_${emailRes.status}`;

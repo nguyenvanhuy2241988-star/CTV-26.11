@@ -1,6 +1,6 @@
 // Shared database adapter for CVT website.
 // Strictly communicates with persistent Supabase PostgreSQL via PostgREST API.
-// NO in-memory fallback for customer leads or CMS mutations to prevent data loss on serverless environments.
+// NO in-memory fallback for customer leads, CMS mutations, or admin rate limiting to prevent data loss or security bypass on serverless environments.
 
 function getSupabaseConfig() {
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -212,138 +212,96 @@ export async function saveEntry({ id, kind, data, published }) {
 }
 
 // ====================================================================
-// PERSISTENT DISTRIBUTED RATE LIMITING FOR ADMIN LOGIN
-// Shared across all serverless lambda instances via cvt_admin_attempts table
+// ATOMIC DISTRIBUTED RATE LIMITING FOR ADMIN LOGIN
+// Strictly executes atomic database transactions via PostgREST RPC.
+// NO in-memory fallback: If DB is unreachable, strictly throws to trigger 503.
 // ====================================================================
 
-const memoryRateLimit = new Map(); // Local backup only if DB table isn't created yet
-const MAX_ATTEMPTS = 5;
-const WINDOW_MS = 15 * 60 * 1000; // 15 mins
-const LOCKOUT_MS = 15 * 60 * 1000; // 15 mins
-
-export async function checkPersistentLoginRateLimit(ip) {
+export async function checkAtomicLoginRateLimit(ip) {
   const sb = getSupabaseConfig();
-  const now = Date.now();
-
-  if (sb) {
-    try {
-      const res = await fetch(`${sb.url}/rest/v1/cvt_admin_attempts?ip=eq.${encodeURIComponent(ip)}&select=*`, {
-        headers: sb.headers
-      });
-      if (res.ok) {
-        const rows = await res.json();
-        if (Array.isArray(rows) && rows.length > 0) {
-          const record = rows[0];
-          const lockedUntil = record.locked_until ? new Date(record.locked_until).getTime() : 0;
-          if (lockedUntil > now) {
-            const remainingSec = Math.ceil((lockedUntil - now) / 1000);
-            return { allowed: false, remainingSec };
-          }
-          const firstAttempt = new Date(record.first_attempt).getTime();
-          if (now - firstAttempt > WINDOW_MS) {
-            // Expired window, allow
-            return { allowed: true, attempts: 0 };
-          }
-          if (record.attempts >= MAX_ATTEMPTS) {
-            return { allowed: false, remainingSec: Math.ceil(LOCKOUT_MS / 1000) };
-          }
-          return { allowed: true, attempts: record.attempts };
-        }
-      }
-    } catch (e) {
-      console.warn('Persistent rate limit query warning:', e);
-    }
+  if (!sb) {
+    const err = new Error('DATABASE_NOT_CONFIGURED');
+    err.code = 'DATABASE_NOT_CONFIGURED';
+    throw err;
   }
 
-  // In-memory fallback
-  const mem = memoryRateLimit.get(ip);
-  if (!mem) return { allowed: true, attempts: 0 };
-  if (mem.lockedUntil && now < mem.lockedUntil) {
-    return { allowed: false, remainingSec: Math.ceil((mem.lockedUntil - now) / 1000) };
+  const res = await fetch(`${sb.url}/rest/v1/rpc/cvt_check_login_rate_limit`, {
+    method: 'POST',
+    headers: sb.headers,
+    body: JSON.stringify({ p_ip: ip })
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`DATABASE_RPC_CHECK_FAILED: ${res.status} ${errText}`);
   }
-  if (now - mem.firstAttempt > WINDOW_MS) {
-    memoryRateLimit.delete(ip);
-    return { allowed: true, attempts: 0 };
+
+  const rows = await res.json();
+  const result = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+  if (!result) {
+    return { allowed: true, attempts: 0, remainingSec: 0 };
   }
-  if (mem.count >= MAX_ATTEMPTS) {
-    mem.lockedUntil = now + LOCKOUT_MS;
-    return { allowed: false, remainingSec: Math.ceil(LOCKOUT_MS / 1000) };
-  }
-  return { allowed: true, attempts: mem.count };
+
+  return {
+    allowed: !!result.allowed,
+    attempts: Number(result.current_attempts || 0),
+    remainingSec: Number(result.remaining_seconds || 0)
+  };
 }
 
-export async function recordPersistentFailedLogin(ip) {
+export async function recordAtomicFailedLogin(ip) {
   const sb = getSupabaseConfig();
-  const now = Date.now();
-  const nowIso = new Date(now).toISOString();
-
-  // Local backup
-  const mem = memoryRateLimit.get(ip) || { count: 0, firstAttempt: now, lockedUntil: 0 };
-  mem.count += 1;
-  if (mem.count >= MAX_ATTEMPTS) {
-    mem.lockedUntil = now + LOCKOUT_MS;
-  }
-  memoryRateLimit.set(ip, mem);
-
-  if (sb) {
-    try {
-      const checkRes = await fetch(`${sb.url}/rest/v1/cvt_admin_attempts?ip=eq.${encodeURIComponent(ip)}&select=*`, {
-        headers: sb.headers
-      });
-      if (checkRes.ok) {
-        const rows = await checkRes.json();
-        if (Array.isArray(rows) && rows.length > 0) {
-          const rec = rows[0];
-          const newAttempts = (rec.attempts || 0) + 1;
-          const lockedUntilIso = newAttempts >= MAX_ATTEMPTS ? new Date(now + LOCKOUT_MS).toISOString() : null;
-          await fetch(`${sb.url}/rest/v1/cvt_admin_attempts?ip=eq.${encodeURIComponent(ip)}`, {
-            method: 'PATCH',
-            headers: sb.headers,
-            body: JSON.stringify({
-              attempts: newAttempts,
-              locked_until: lockedUntilIso,
-              updated_at: nowIso
-            })
-          });
-          return newAttempts;
-        }
-      }
-
-      // First failed attempt insert
-      await fetch(`${sb.url}/rest/v1/cvt_admin_attempts`, {
-        method: 'POST',
-        headers: {
-          ...sb.headers,
-          'Prefer': 'resolution=merge-duplicates'
-        },
-        body: JSON.stringify({
-          ip,
-          attempts: 1,
-          first_attempt: nowIso,
-          locked_until: null,
-          updated_at: nowIso
-        })
-      });
-      return 1;
-    } catch (e) {
-      console.warn('Persistent recordFailedLogin error:', e);
-    }
+  if (!sb) {
+    const err = new Error('DATABASE_NOT_CONFIGURED');
+    err.code = 'DATABASE_NOT_CONFIGURED';
+    throw err;
   }
 
-  return mem.count;
+  // Atomic row-locked RPC execution in PostgreSQL:
+  // Reads FOR UPDATE, checks 15-minute window, resets if expired, increments counter, locks if >= 5
+  const res = await fetch(`${sb.url}/rest/v1/rpc/cvt_record_login_failure`, {
+    method: 'POST',
+    headers: sb.headers,
+    body: JSON.stringify({
+      p_ip: ip,
+      p_max_attempts: 5
+    })
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`DATABASE_RPC_RECORD_FAILED: ${res.status} ${errText}`);
+  }
+
+  const rows = await res.json();
+  const result = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+  if (!result) {
+    return { allowed: true, attempts: 1, remainingSec: 0 };
+  }
+
+  return {
+    allowed: !!result.allowed,
+    attempts: Number(result.current_attempts || 1),
+    remainingSec: Number(result.remaining_seconds || 0)
+  };
 }
 
-export async function clearPersistentLoginAttempts(ip) {
-  memoryRateLimit.delete(ip);
+export async function clearAtomicLoginAttempts(ip) {
   const sb = getSupabaseConfig();
-  if (sb) {
-    try {
-      await fetch(`${sb.url}/rest/v1/cvt_admin_attempts?ip=eq.${encodeURIComponent(ip)}`, {
-        method: 'DELETE',
-        headers: sb.headers
-      });
-    } catch (e) {
-      console.warn('Persistent clearLoginAttempts error:', e);
-    }
+  if (!sb) {
+    const err = new Error('DATABASE_NOT_CONFIGURED');
+    err.code = 'DATABASE_NOT_CONFIGURED';
+    throw err;
   }
+
+  const res = await fetch(`${sb.url}/rest/v1/cvt_admin_attempts?ip=eq.${encodeURIComponent(ip)}`, {
+    method: 'DELETE',
+    headers: sb.headers
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    console.warn(`DATABASE_CLEAR_ATTEMPTS_WARNING: ${res.status} ${errText}`);
+  }
+  return true;
 }
