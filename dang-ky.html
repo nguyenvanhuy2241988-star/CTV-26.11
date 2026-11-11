@@ -197,7 +197,7 @@
       <p>Cảm ơn Quý đối tác. Thông tin đã được lưu vào hệ thống CVT để LYHU chủ động liên hệ trao đổi phương án.</p>
       <div><span class="code-badge" id="req-code">CVT-XXXXXXXX</span></div>
       <div>
-        <button type="button" class="btn-new" onclick="resetForm()">Tạo yêu cầu mới ↗</button>
+        <button type="button" class="btn-new" onclick="resetForm()">Tạo yêu cầu mới </button>
       </div>
     </div>
 
@@ -276,7 +276,7 @@
       <div class="form-error" id="form-error" role="alert"></div>
 
       <button type="submit" class="submit-btn" id="submit-btn">
-        <span>Gửi yêu cầu hợp tác ↗</span>
+        <span>Gửi yêu cầu hợp tác </span>
       </button>
 
       <p class="fine-print">
@@ -444,12 +444,12 @@
         } else {
           errEl.textContent = data.error || 'Chưa gửi được yêu cầu. Vui lòng liên hệ Hotline 0969 069 798.';
           btn.disabled = false;
-          btn.innerHTML = '<span>Gửi yêu cầu hợp tác ↗</span>';
+          btn.innerHTML = '<span>Gửi yêu cầu hợp tác </span>';
         }
       } catch (err) {
         errEl.textContent = 'Không kết nối được máy chủ. Vui lòng thử lại hoặc gọi Hotline 0969 069 798.';
         btn.disabled = false;
-        btn.innerHTML = '<span>Gửi yêu cầu hợp tác ↗</span>';
+        btn.innerHTML = '<span>Gửi yêu cầu hợp tác </span>';
       }
     }
 
@@ -460,7 +460,7 @@
       document.getElementById('form-error').textContent = '';
       var btn = document.getElementById('submit-btn');
       btn.disabled = false;
-      btn.innerHTML = '<span>Gửi yêu cầu hợp tác ↗</span>';
+      btn.innerHTML = '<span>Gửi yêu cầu hợp tác </span>';
       document.getElementById('requestKey').value = genKey();
       notifyHeight();
     }
