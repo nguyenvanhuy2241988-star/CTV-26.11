@@ -179,8 +179,8 @@ export default async function handler(req, res) {
         }
       } else {
         const errText = await emailRes.text();
-        emailStatus = `gateway_rejected_${emailRes.status}_${errText.replace(/[^a-zA-Z0-9_\-]/g, '_').slice(0, 80)}`;
-        console.warn('FormSubmit email service rejection:', emailRes.status, errText);
+        emailStatus = `gateway_rejected_${emailRes.status}`;
+        console.warn('FormSubmit email service rejection:', emailRes.status, errText.slice(0, 100));
       }
     } catch (mailErr) {
       emailStatus = 'gateway_timeout';
