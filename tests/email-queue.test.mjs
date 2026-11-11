@@ -22,27 +22,13 @@ test('worker authorization fails before touching DB',async()=>{
  await worker({method:'GET',headers:{}},r);assert.equal(r.code,401);
  r=res();await worker({method:'POST',headers:{authorization:'Bearer test-secret'}},r);assert.equal(r.code,405);
 });
-test('preview worker cannot consume production queue',async()=>{
- process.env.CRON_SECRET='test-secret';process.env.VERCEL_ENV='preview';delete process.env.CVT_EMAIL_QUEUE_TEST;
- const r=res();await worker({method:'GET',headers:{authorization:'Bearer test-secret'}},r);assert.equal(r.code,409);
-});
-test('queue persists result with fencing token and worker only claims one at a time',async()=>{
- const old=global.fetch;const calls=[];
- process.env.SUPABASE_URL='https://test.invalid';process.env.SUPABASE_SERVICE_ROLE_KEY='test';process.env.VERCEL_ENV='production';
- try {
-  global.fetch=async(url,opt)=>{
-   calls.push(String(url));
-   if(String(url).endsWith('cvt_claim_email')) return response(200,calls.filter(x=>x.endsWith('cvt_claim_email')).length===1?{requestId:'CVT-QA',token:'test-token',lead}:null);
-   if(String(url).includes('formsubmit.co')) return response(200,{success:true});
-   if(String(url).endsWith('cvt_finish_email')) {const b=JSON.parse(opt.body);assert.equal(b.p_token,'test-token');assert.equal(b.p_state,'gateway_accepted');return response(200,true);}
-   throw new Error('unexpected fetch');
-  };
-  const r=res();await worker({method:'GET',headers:{authorization:'Bearer test-secret'}},r);
-  assert.equal(r.code,200);assert.equal(r.data.processed,1);
-  assert.ok(calls[2].endsWith('cvt_finish_email'));
- } finally {global.fetch=old;}
+test('server worker does not dispatch formsubmit to prevent dual sending',async()=>{
+ process.env.CRON_SECRET='test-secret';
+ const r=res();await worker({method:'GET',headers:{authorization:'Bearer test-secret'}},r);
+ assert.equal(r.code,200);assert.equal(r.data.processed,0);assert.equal(r.data.serverDispatch,'disabled');
 });
 test('form atomically creates lead and queue without direct email dispatch',async()=>{
+ process.env.SUPABASE_URL='https://test.invalid';process.env.SUPABASE_SERVICE_ROLE_KEY='test';
  const old=global.fetch;let created=0;
  try {
   global.fetch=async(url)=>{
@@ -70,6 +56,7 @@ test('confirm_email_dispatch updates outbox when requestKey matches',async()=>{
   global.fetch=async(url,opt)=>{
    if(String(url).includes('cvt_requests?request_key=eq.')) return response(200,[{id:'CVT-QA',status:'new'}]);
    if(String(url).includes('cvt_email_outbox?request_id=eq.CVT-QA')) {
+    assert.ok(String(url).includes('state=eq.pending'));
     assert.equal(opt.method,'PATCH');
     const b=JSON.parse(opt.body);
     assert.equal(b.state,'gateway_accepted');

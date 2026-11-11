@@ -56,13 +56,15 @@ export async function confirmEmailDispatched(id, requestKey) {
   if (!existing || existing.id !== id) return false;
 
   try {
-    const res = await fetch(`${sb.url}/rest/v1/cvt_email_outbox?request_id=eq.${encodeURIComponent(id)}`, {
+    // Strict guard: only update if current state is strictly 'pending'.
+    // Never arbitrarily overwrite jobs in processing, failed, or already finalized states.
+    const res = await fetch(`${sb.url}/rest/v1/cvt_email_outbox?request_id=eq.${encodeURIComponent(id)}&state=eq.pending`, {
       method: 'PATCH',
       headers: sb.headers,
       body: JSON.stringify({
         state: 'gateway_accepted',
         gateway_accepted_at: new Date().toISOString(),
-        last_error: null,
+        last_error: 'client_reported_accepted',
         updated_at: new Date().toISOString()
       })
     });

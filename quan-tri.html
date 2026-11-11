@@ -577,8 +577,16 @@
 
     function emailQueueLabel(job) {
       if (!job) return 'Phiếu cũ / chưa có tác vụ';
-      const labels = {pending:'Đang chờ gửi',processing:'Đang gửi',retry:'Chờ thử lại',gateway_accepted:'Dịch vụ đã tiếp nhận — chưa xác nhận đến hộp thư',activation_required:'Cần kích hoạt dịch vụ',unconfirmed:'Chưa xác nhận — cần kiểm tra',failed:'Gửi thất bại'};
-      return (labels[job.state] || 'Chưa xác nhận') + ' · ' + job.attempts + ' lần thử';
+      const labels = {
+        pending: 'Chưa có thông báo từ trình duyệt',
+        processing: 'Đang gửi',
+        retry: 'Chờ thử lại',
+        gateway_accepted: 'Trình duyệt báo dịch vụ đã tiếp nhận',
+        activation_required: 'Cần kích hoạt dịch vụ',
+        unconfirmed: 'Chưa xác nhận — cần kiểm tra',
+        failed: 'Gửi thất bại'
+      };
+      return labels[job.state] || 'Chưa xác nhận';
     }
 
     async function updateLeadStatus(id, newStatus) {
