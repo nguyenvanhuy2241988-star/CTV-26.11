@@ -1,3 +1,4 @@
+import { queueRpc } from './_email-queue.js';
 // Shared database adapter for CVT website.
 // Strictly communicates with persistent Supabase PostgreSQL via PostgREST API.
 // NO in-memory fallback for customer leads, CMS mutations, or admin rate limiting to prevent data loss or security bypass on serverless environments.
@@ -42,55 +43,9 @@ export async function findRequestByKey(requestKey) {
 }
 
 export async function insertRequest(data) {
-  const sb = getSupabaseConfig();
-  if (!sb) {
-    const err = new Error('DATABASE_NOT_CONFIGURED');
-    err.code = 'DATABASE_NOT_CONFIGURED';
-    throw err;
-  }
-
-  const res = await fetch(`${sb.url}/rest/v1/cvt_requests`, {
-    method: 'POST',
-    headers: sb.headers,
-    body: JSON.stringify({
-      id: data.id,
-      request_key: data.requestKey,
-      audience: data.audience,
-      company: data.company,
-      name: data.name,
-      phone: data.phone,
-      email: data.email || '',
-      region: data.region,
-      purpose: data.purpose,
-      sku: data.sku || '',
-      note: data.note || '',
-      consent: data.consent ? 1 : 0,
-      status: data.status || 'new',
-      created_at: data.createdAt
-    })
-  });
-
-  if (res.ok) {
-    const saved = await res.json();
-    return Array.isArray(saved) ? saved[0] : { id: data.id };
-  }
-
-  const errText = await res.text();
-  const isConflict = res.status === 409 || errText.includes('23505') || errText.includes('duplicate key') || errText.includes('request_key');
-  
-  if (isConflict) {
-    // Concurrent race condition resolution:
-    // Query the EXACT record that won the insert race
-    const existing = await findRequestByKey(data.requestKey);
-    if (existing) {
-      return { id: existing.id, status: existing.status, duplicate: true };
-    }
-  }
-
-  const insertErr = new Error(`DATABASE_INSERT_FAILED: ${res.status} ${errText}`);
-  insertErr.status = res.status;
-  insertErr.details = errText;
-  throw insertErr;
+  const result = await queueRpc('cvt_create_request_with_email', { p_data: data });
+  if (!result || !result.id || typeof result.duplicate !== 'boolean') throw new Error('EMAIL_QUEUE_INVALID_CREATE_RESPONSE');
+  return result;
 }
 
 export async function listRequests(limit = 200) {
@@ -112,6 +67,8 @@ export async function listRequests(limit = 200) {
 
   const rows = await res.json();
   if (Array.isArray(rows)) {
+    const jobs = await queueRpc('cvt_list_email_status');
+    const mailById = new Map(jobs.map(j => [j.request_id,j]));
     return rows.map(r => ({
       id: r.id,
       requestKey: r.request_key,
@@ -125,7 +82,8 @@ export async function listRequests(limit = 200) {
       sku: r.sku,
       note: r.note,
       status: r.status,
-      createdAt: r.created_at
+      createdAt: r.created_at,
+      emailQueue: mailById.get(r.id) || null
     }));
   }
   return [];

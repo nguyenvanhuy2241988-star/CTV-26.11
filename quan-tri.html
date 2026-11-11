@@ -560,6 +560,7 @@
               </div>
               ${r.sku ? `<div class="lead-meta"><b>Sản phẩm quan tâm:</b> ${escapeHtml(r.sku)}</div>` : ''}
               ${r.note ? `<div class="lead-note">${escapeHtml(r.note)}</div>` : ''}
+              <div class="lead-meta"><b>Email thông báo:</b> ${escapeHtml(emailQueueLabel(r.emailQueue))}</div>
               <div class="lead-time">Mã: ${escapeHtml(r.id)} · Thời gian: ${formattedDate}</div>
             </div>
             <div>
@@ -572,6 +573,12 @@
           </article>
         `;
       }).join('');
+    }
+
+    function emailQueueLabel(job) {
+      if (!job) return 'Phiếu cũ / chưa có tác vụ';
+      const labels = {pending:'Đang chờ gửi',processing:'Đang gửi',retry:'Chờ thử lại',gateway_accepted:'Dịch vụ đã tiếp nhận — chưa xác nhận đến hộp thư',activation_required:'Cần kích hoạt dịch vụ',unconfirmed:'Chưa xác nhận — cần kiểm tra',failed:'Gửi thất bại'};
+      return (labels[job.state] || 'Chưa xác nhận') + ' · ' + job.attempts + ' lần thử';
     }
 
     async function updateLeadStatus(id, newStatus) {

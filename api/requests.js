@@ -122,76 +122,13 @@ export default async function handler(req, res) {
       });
     }
 
-    // 7. Verified email notification (FormSubmit)
-    // ONLY sent when a genuinely NEW record is created!
-    // Await with timeout to verify whether gateway accepted the dispatch.
-    let emailStatus = 'pending';
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000);
-
-      const emailRes = await fetch('https://formsubmit.co/ajax/lyhu.vn@gmail.com', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-          'Origin': 'https://www.cvt.com.vn',
-          'Referer': 'https://www.cvt.com.vn/dang-ky.html'
-        },
-        body: JSON.stringify({
-          _subject: `🔥 [CVT Web] Yêu Cầu Hợp Tác Mới: ${company} - ${audience} (${phone})`,
-          'Mã yêu cầu': finalId,
-          'Mô hình': audience,
-          'Nhu cầu': purpose,
-          'Đơn vị': company,
-          'Người liên hệ': name,
-          'Số điện thoại': phone,
-          'Email': email || 'Không có',
-          'Khu vực': region,
-          'Sản phẩm quan tâm': sku || 'Tất cả các dòng',
-          'Ghi chú': note || 'Không có',
-          'Thời gian': new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
-          _template: 'table'
-        }),
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
-
-      if (emailRes.ok) {
-        let json = null;
-        try {
-          json = await emailRes.json();
-        } catch (_) {}
-
-        if (json && (json.success === 'true' || json.success === true)) {
-          // Explicitly labeled as gateway_accepted (service accepted payload for delivery)
-          emailStatus = 'gateway_accepted';
-        } else if (json && (json.success === 'false' || json.success === false)) {
-          // FormSubmit requires email activation on first usage, or rejected content
-          emailStatus = `gateway_activation_required: ${json.message || 'Form needs email confirmation'}`;
-          console.warn('FormSubmit activation/status warning:', json.message);
-        } else {
-          // If JSON is empty, missing, or unrecognized, label strictly as unconfirmed
-          emailStatus = 'gateway_unconfirmed';
-          console.warn('FormSubmit email status unconfirmed (empty or unrecognized JSON response)');
-        }
-      } else {
-        const errText = await emailRes.text();
-        emailStatus = `gateway_rejected_${emailRes.status}`;
-        console.warn('FormSubmit email service rejection:', emailRes.status, errText.slice(0, 100));
-      }
-    } catch (mailErr) {
-      emailStatus = 'gateway_timeout';
-      console.warn('FormSubmit email network warning (non-fatal):', mailErr.message);
-    }
+    // Lead and email job were committed in the same DB transaction.
 
     return res.status(201).json({
       ok: true,
       id: finalId,
       duplicate: false,
-      emailDispatch: emailStatus,
+      emailDispatch: 'queued',
       message: 'Đã tiếp nhận yêu cầu hợp tác thành công!'
     });
 

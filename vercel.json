@@ -52,5 +52,6 @@
     { "source": "/giu-khoai-mon-gion", "destination": "/giu-khoai-mon-gion.html" },
     { "source": "/huong-dan-mua-hang", "destination": "/huong-dan-mua-hang.html" },
     { "source": "/quyen-rieng-tu", "destination": "/quyen-rieng-tu.html" }
-  ]
+  ],
+  "crons": [{ "path": "/api/cron/email-queue", "schedule": "*/5 * * * *" }]
 }
