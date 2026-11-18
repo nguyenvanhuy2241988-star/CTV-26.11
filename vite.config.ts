@@ -2,6 +2,22 @@ import path from 'path';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+  plugins: [{
+    name: 'cvt-lyhu-analytics',
+    transformIndexHtml: {
+      order: 'post',
+      handler(_html, ctx) {
+        // Track public pages only. The hosted tracker also restricts production hosts.
+        const page = path.basename(ctx.filename);
+        if (['quan-tri.html', 'HANDOFF-NOTICE.html'].includes(page)) return [];
+        return [{
+          tag: 'script',
+          attrs: { src: 'https://www.lyhu.com.vn/cvt-analytics.js', defer: true },
+          injectTo: 'head' as const
+        }];
+      }
+    }
+  }],
   server: {
     port: 3000,
     host: '0.0.0.0'
