@@ -69,3 +69,25 @@ test('analytics is injected only once and protected pages remain untracked', () 
   }
   for (const f of ['quan-tri.html', 'HANDOFF-NOTICE.html']) assert.ok(!read(f).includes('cvt-analytics.js'));
 });
+
+test('image sitemap maps each catalog variant to its product page and visible image', () => {
+  const sitemap = read('sitemap.xml');
+  assert.ok(sitemap.includes('xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"'));
+  const catalog = JSON.parse(read('assets/cvt-products.json'));
+  const entries = [...sitemap.matchAll(/<url>(.*?)<\/url>/gs)].map(m => m[1]);
+  const expected = [];
+  for (const product of catalog) {
+    const entry = entries.find(e => e.includes(`<loc>${base}/${product.link}</loc>`));
+    assert.ok(entry, product.link);
+    const images = [...entry.matchAll(/<image:loc>(.*?)<\/image:loc>/g)].map(m => m[1]);
+    const wanted = product.sizes.map(size => `${base}/assets/products/${product.id}-${size}.webp`);
+    assert.deepEqual(images, wanted);
+    for (const image of images) {
+      const path = new URL(image).pathname;
+      assert.ok(existsSync(resolve(dist, '.' + path)));
+      assert.ok(read(product.link + '.html').includes(`src="${path}"`));
+    }
+    expected.push(...wanted);
+  }
+  assert.equal((sitemap.match(/<image:image>/g) || []).length, expected.length);
+});

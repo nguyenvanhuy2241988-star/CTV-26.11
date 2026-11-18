@@ -1,23 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url><loc>https://www.cvt.com.vn/ba-cach-mo-cuoc-vui</loc></url>
-  <url><loc>https://www.cvt.com.vn/cay-tu-xuyen</loc></url>
+  <url><loc>https://www.cvt.com.vn/cay-tu-xuyen</loc>
+    <image:image><image:loc>https://www.cvt.com.vn/assets/products/spicy-75.webp</image:loc></image:image>
+    <image:image><image:loc>https://www.cvt.com.vn/assets/products/spicy-180.webp</image:loc></image:image>
+  </url>
   <url><loc>https://www.cvt.com.vn/chat-luong</loc></url>
   <url><loc>https://www.cvt.com.vn/chon-goi-khoai-mon</loc></url>
   <url><loc>https://www.cvt.com.vn/giu-khoai-mon-gion</loc></url>
   <url><loc>https://www.cvt.com.vn/goc-cvt</loc></url>
-  <url><loc>https://www.cvt.com.vn/hanh-la</loc></url>
+  <url><loc>https://www.cvt.com.vn/hanh-la</loc>
+    <image:image><image:loc>https://www.cvt.com.vn/assets/products/onion-75.webp</image:loc></image:image>
+  </url>
   <url><loc>https://www.cvt.com.vn/hoi-dap</loc></url>
   <url><loc>https://www.cvt.com.vn/hop-tac</loc></url>
   <url><loc>https://www.cvt.com.vn/huong-dan-mua-hang</loc></url>
   <url><loc>https://www.cvt.com.vn/</loc></url>
   <url><loc>https://www.cvt.com.vn/lien-he</loc></url>
-  <url><loc>https://www.cvt.com.vn/nam</loc></url>
+  <url><loc>https://www.cvt.com.vn/nam</loc>
+    <image:image><image:loc>https://www.cvt.com.vn/assets/products/truffle-35.webp</image:loc></image:image>
+  </url>
   <url><loc>https://www.cvt.com.vn/noi-mua</loc></url>
   <url><loc>https://www.cvt.com.vn/quyen-rieng-tu</loc></url>
   <url><loc>https://www.cvt.com.vn/san-pham</loc></url>
-  <url><loc>https://www.cvt.com.vn/trung-cua</loc></url>
-  <url><loc>https://www.cvt.com.vn/trung-muoi</loc></url>
+  <url><loc>https://www.cvt.com.vn/trung-cua</loc>
+    <image:image><image:loc>https://www.cvt.com.vn/assets/products/crab-35.webp</image:loc></image:image>
+    <image:image><image:loc>https://www.cvt.com.vn/assets/products/crab-75.webp</image:loc></image:image>
+    <image:image><image:loc>https://www.cvt.com.vn/assets/products/crab-180.webp</image:loc></image:image>
+  </url>
+  <url><loc>https://www.cvt.com.vn/trung-muoi</loc>
+    <image:image><image:loc>https://www.cvt.com.vn/assets/products/egg-35.webp</image:loc></image:image>
+    <image:image><image:loc>https://www.cvt.com.vn/assets/products/egg-75.webp</image:loc></image:image>
+    <image:image><image:loc>https://www.cvt.com.vn/assets/products/egg-180.webp</image:loc></image:image>
+  </url>
   <url><loc>https://www.cvt.com.vn/ve-cvt</loc></url>
   <url><loc>https://www.cvt.com.vn/yeu-cau-hop-tac</loc></url>
 </urlset>
