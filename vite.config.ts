@@ -3,6 +3,16 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [{
+    name: 'cvt-product-script-on-demand',
+    transformIndexHtml: {
+      order: 'pre',
+      handler(html) {
+        const hasShowcase = /class=["'][^"']*\bcvt-showcase\b[^"']*["']/.test(html);
+        if (hasShowcase) return html;
+        return html.replace(/<script\b[^>]*\bsrc=["']\/assets\/cvt-product-studio\.js(?:\?[^"']*)?["'][^>]*>\s*<\/script>/g, '');
+      }
+    }
+  }, {
     name: 'cvt-lyhu-analytics',
     transformIndexHtml: {
       order: 'post',
