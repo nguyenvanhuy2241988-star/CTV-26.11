@@ -11,6 +11,15 @@ const read = f => readFileSync(resolve(dist, f), 'utf8');
 const base = 'https://www.cvt.com.vn';
 const canonical = f => base + (f === 'index.html' ? '/' : '/' + f.slice(0, -5));
 
+test('product selector script is loaded only on pages with the product selector', () => {
+  for (const f of files) {
+    const html = read(f);
+    const hasShowcase = /class=["'][^"']*\bcvt-showcase\b[^"']*["']/.test(html);
+    const scripts = [...html.matchAll(/<script\b[^>]*src="\/assets\/cvt-product-studio\.js(?:\?[^"']*)?"[^>]*>/g)];
+    assert.equal(scripts.length, hasShowcase ? 1 : 0, f);
+  }
+});
+
 test('all public pages have unique metadata and self-referencing canonical URLs', () => {
   assert.equal(files.length, 24);
   const titles = new Set();
