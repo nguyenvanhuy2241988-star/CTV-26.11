@@ -10,6 +10,7 @@ export default defineConfig({
         // Track public pages only. The hosted tracker also restricts production hosts.
         const page = path.basename(ctx.filename);
         if (['quan-tri.html', 'HANDOFF-NOTICE.html'].includes(page)) return [];
+        if (_html.includes('src="https://www.lyhu.com.vn/cvt-analytics.js"')) return [];
         return [{
           tag: 'script',
           attrs: { src: 'https://www.lyhu.com.vn/cvt-analytics.js', defer: true },
