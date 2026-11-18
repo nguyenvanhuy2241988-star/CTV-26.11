@@ -8,7 +8,7 @@ export default defineConfig({
       order: 'pre',
       handler(html) {
         const hasShowcase = /class=["'][^"']*\bcvt-showcase\b[^"']*["']/.test(html);
-        if (hasShowcase) return html;
+        if (hasShowcase) return html.replace('/assets/cvt-product-studio.js?v=5', '/assets/cvt-product-studio.js?v=6');
         return html.replace(/<script\b[^>]*\bsrc=["']\/assets\/cvt-product-studio\.js(?:\?[^"']*)?["'][^>]*>\s*<\/script>/g, '');
       }
     }
